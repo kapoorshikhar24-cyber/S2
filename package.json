@@ -1,0 +1,23 @@
+{
+  "name": "uat-dashboard",
+  "version": "2.0.0",
+  "description": "User Acceptance Testing Dashboard — deployment-ready on Vercel + MongoDB",
+  "main": "api/index.js",
+  "scripts": {
+    "dev": "node server.js",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.3.3",
+    "bcryptjs": "^2.4.3",
+    "jsforce": "^3.10.15",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.21.0"
+  },
+  "devDependencies": {
+    "vercel": "^50.39.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

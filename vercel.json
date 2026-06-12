@@ -1,0 +1,49 @@
+{
+  "version": 2,
+  "routes": [
+    {
+      "src": "/api/auth",
+      "dest": "/api/auth.js"
+    },
+    {
+      "src": "/api/users",
+      "dest": "/api/users.js"
+    },
+    {
+      "src": "/api/projects",
+      "dest": "/api/projects.js"
+    },
+    {
+      "src": "/api/entries",
+      "dest": "/api/entries.js"
+    },
+    {
+      "src": "/api/notifications",
+      "dest": "/api/notifications.js"
+    },
+    {
+      "src": "/api/sf-(.*)",
+      "dest": "/api/sf.js"
+    },
+    {
+      "src": "/src/(.*)",
+      "dest": "/src/$1"
+    },
+    {
+      "src": "/mom.html",
+      "dest": "/public/mom.html"
+    },
+    {
+      "src": "/salesforce.html",
+      "dest": "/public/salesforce.html"
+    },
+    {
+      "src": "/salesforce_playwright.py",
+      "dest": "/public/salesforce_playwright.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/index.html"
+    }
+  ]
+}

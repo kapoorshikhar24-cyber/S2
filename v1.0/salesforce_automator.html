@@ -1,0 +1,2699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Salesforce Field Automator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* ── SANDBOX (default) ── */
+  --mode-accent:      #3b82f6;
+  --mode-accent-dim:  #1d4ed8;
+  --mode-accent-glow: rgba(59,130,246,0.18);
+  --mode-accent-bg:   rgba(59,130,246,0.08);
+  --mode-badge-bg:    rgba(59,130,246,0.15);
+  --mode-badge-text:  #93c5fd;
+  --mode-stripe:      rgba(59,130,246,0.06);
+
+  --bg:        #0b0d14;
+  --surface:   #111420;
+  --surface2:  #181c2a;
+  --border:    rgba(255,255,255,0.07);
+  --border-md: rgba(255,255,255,0.11);
+  --text:      #e8eaf0;
+  --muted:     #6b7280;
+  --subtle:    #9ca3af;
+  --font-head: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ── PRODUCTION THEME ── */
+body.production {
+  --mode-accent:      #ef4444;
+  --mode-accent-dim:  #b91c1c;
+  --mode-accent-glow: rgba(239,68,68,0.18);
+  --mode-accent-bg:   rgba(239,68,68,0.08);
+  --mode-badge-bg:    rgba(239,68,68,0.15);
+  --mode-badge-text:  #fca5a5;
+  --mode-stripe:      rgba(239,68,68,0.05);
+}
+
+/* ── DEVELOPMENT THEME ── */
+body.development {
+  --mode-accent:      #10b981;
+  --mode-accent-dim:  #047857;
+  --mode-accent-glow: rgba(16,185,129,0.18);
+  --mode-accent-bg:   rgba(16,185,129,0.08);
+  --mode-badge-bg:    rgba(16,185,129,0.15);
+  --mode-badge-text:  #6ee7b7;
+  --mode-stripe:      rgba(16,185,129,0.05);
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2.5rem 1.5rem 4rem;
+  transition: background 0.4s ease;
+  /* subtle dot grid */
+  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ─────────────────────────────────────────
+   SHELL
+───────────────────────────────────────── */
+.shell {
+  width: 100%;
+  max-width: min(1200px, 95vw);
+  margin: 0 auto;
+  animation: rise 0.45s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes rise {
+  from { opacity:0; transform:translateY(20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .dashboard-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 1.5rem;
+  }
+  .settings-panel {
+    width: 380px !important;
+    max-width: 380px !important;
+    flex-shrink: 0;
+    margin-bottom: 0 !important;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  .settings-panel:not(.open) {
+    width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    opacity: 0 !important;
+    margin-right: 0 !important;
+  }
+  .settings-panel.open {
+    max-height: none !important;
+  }
+  .card {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* ─────────────────────────────────────────
+   TOP BAR
+───────────────────────────────────────── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-mark {
+  width: 40px; height: 40px;
+  background: var(--mode-accent-bg);
+  border: 1px solid var(--mode-accent-dim);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.4s, border-color 0.4s;
+}
+.logo-mark svg { width:20px; height:20px; }
+.logo-mark svg path { stroke: var(--mode-accent); transition: stroke 0.4s; }
+
+.brand-text h1 {
+  font-family: var(--font-head);
+  font-size: 1.2rem; font-weight: 700;
+  color: var(--text); letter-spacing: -0.01em;
+}
+.brand-text p {
+  font-family: var(--font-mono);
+  font-size: 0.7rem; color: var(--muted); margin-top: 1px;
+}
+
+/* Mode Badge */
+.mode-badge {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--mode-badge-bg);
+  border: 1px solid var(--mode-accent-dim);
+  border-radius: 20px;
+  padding: 4px 12px 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem; font-weight: 500;
+  color: var(--mode-badge-text);
+  transition: all 0.4s;
+}
+.mode-badge .blink {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--mode-accent);
+  animation: blink 1.8s ease-in-out infinite;
+  transition: background 0.4s;
+}
+@keyframes blink {
+  0%,100% { opacity:1; } 50% { opacity:0.3; }
+}
+
+/* Settings btn */
+.settings-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border-md);
+  border-radius: 9px;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--muted);
+  transition: border-color 0.2s, color 0.2s, transform 0.3s;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+.settings-btn:hover { color: var(--text); border-color: var(--mode-accent); }
+.settings-btn.open { transform: rotate(45deg); color: var(--mode-accent); border-color: var(--mode-accent); }
+.settings-btn svg { width:16px; height:16px; }
+
+.topbar-right { display:flex; align-items:center; gap:8px; }
+
+/* ─────────────────────────────────────────
+   SETTINGS PANEL (slide-down)
+───────────────────────────────────────── */
+.settings-panel {
+  background: var(--surface);
+  border: 1px solid var(--border-md);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.45s cubic-bezier(0.16,1,0.3,1),
+              opacity 0.3s ease,
+              margin-bottom 0.3s ease;
+  pointer-events: none;
+}
+.settings-panel.open {
+  max-height: 800px;
+  overflow-y: auto;
+  opacity: 1;
+  pointer-events: all;
+}
+
+.settings-inner { padding: 1.4rem 1.6rem; }
+
+.settings-title {
+  font-family: var(--font-mono);
+  font-size: 0.68rem; font-weight: 500;
+  color: var(--mode-accent);
+  letter-spacing: 0.12em; text-transform: uppercase;
+  margin-bottom: 1.2rem;
+  transition: color 0.4s;
+}
+
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.mode-card {
+  position: relative;
+  background: var(--surface2);
+  border: 1.5px solid var(--border-md);
+  border-radius: 12px;
+  padding: 1.1rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.25s, background 0.25s, transform 0.15s;
+  user-select: none;
+}
+.mode-card:hover { transform: translateY(-1px); }
+.mode-card:active { transform: scale(0.985); }
+
+.mode-card.selected.sandbox  { border-color: #3b82f6; background: rgba(59,130,246,0.07); }
+.mode-card.selected.production { border-color: #ef4444; background: rgba(239,68,68,0.07); }
+.mode-card.selected.development { border-color: #10b981; background: rgba(16,185,129,0.07); }
+
+.mode-card-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 0.55rem;
+}
+.mode-icon {
+  width: 30px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.mode-icon.sandbox    { background: rgba(59,130,246,0.15); }
+.mode-icon.production { background: rgba(239,68,68,0.15); }
+.mode-icon.development { background: rgba(16,185,129,0.15); }
+.mode-icon svg { width:15px; height:15px; }
+.mode-icon.sandbox svg path    { stroke:#60a5fa; }
+.mode-icon.production svg path { stroke:#f87171; }
+.mode-icon.development svg path { stroke:#34d399; }
+
+.mode-name {
+  font-family: var(--font-head);
+  font-size: 0.95rem; font-weight: 700;
+}
+.mode-card.sandbox    .mode-name { color: #93c5fd; }
+.mode-card.production .mode-name { color: #fca5a5; }
+.mode-card.development .mode-name { color: #6ee7b7; }
+
+.mode-desc {
+  font-size: 0.78rem; color: var(--muted); line-height: 1.5;
+}
+
+.mode-check {
+  position: absolute; top: 10px; right: 10px;
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1.5px solid var(--border-md);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.25s;
+}
+.mode-card.selected.sandbox    .mode-check { background:#3b82f6; border-color:#3b82f6; }
+.mode-card.selected.production .mode-check { background:#ef4444; border-color:#ef4444; }
+.mode-card.selected.development .mode-check { background:#10b981; border-color:#10b981; }
+.mode-check svg { width:10px; height:10px; opacity:0; transition:opacity 0.2s; }
+.mode-card.selected .mode-check svg { opacity:1; }
+
+.settings-note {
+  margin-top: 1rem;
+  font-size: 0.76rem; color: var(--muted);
+  padding: 0.6rem 0.8rem;
+  background: rgba(255,255,255,0.03);
+  border-radius: 7px;
+  border-left: 2px solid var(--mode-accent);
+  transition: border-color 0.4s;
+  font-family: var(--font-mono);
+}
+
+.settings-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 1.3rem 0;
+}
+
+.settings-creds-title {
+  font-family: var(--font-mono);
+  font-size: 0.68rem; font-weight: 500;
+  color: var(--mode-accent);
+  letter-spacing: 0.12em; text-transform: uppercase;
+  margin-bottom: 1rem;
+  transition: color 0.4s;
+}
+
+/* ─────────────────────────────────────────
+   MAIN CARD
+───────────────────────────────────────── */
+/* Accent stripe on top of card */
+.card-accent-bar {
+  height: 3px;
+  background: linear-gradient(90deg, var(--mode-accent), transparent);
+  transition: background 0.4s;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--mode-accent-glow), 0 24px 48px rgba(0,0,0,0.4);
+  transition: box-shadow 0.4s;
+}
+
+/* ─────────────────────────────────────────
+   SECTIONS
+───────────────────────────────────────── */
+.section {
+  padding: 1.4rem 1.75rem;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--mode-stripe) 0%, transparent 60%);
+  transition: background 0.4s;
+}
+.section:last-child { border-bottom: none; }
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 0.66rem; font-weight: 500;
+  color: var(--mode-accent);
+  letter-spacing: 0.12em; text-transform: uppercase;
+  margin-bottom: 1.1rem;
+  display: flex; align-items: center; gap: 8px;
+  transition: color 0.4s;
+}
+.section-label::after {
+  content: ''; flex:1; height:1px;
+  background: var(--border);
+}
+
+/* ─────────────────────────────────────────
+   FORM ELEMENTS
+───────────────────────────────────────── */
+.field { margin-bottom: 0.95rem; }
+.field:last-child { margin-bottom: 0; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+label {
+  display: block;
+  font-size: 0.77rem; font-weight: 500;
+  color: var(--subtle); margin-bottom: 0.4rem;
+}
+
+input, select, textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border-md);
+  border-radius: 8px;
+  padding: 0.72rem 0.9rem;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none; appearance: none;
+}
+input::placeholder, textarea::placeholder { color: #2d3244; }
+input:focus, select:focus, textarea:focus {
+  border-color: var(--mode-accent-dim);
+  box-shadow: 0 0 0 3px var(--mode-accent-glow);
+}
+input[type="password"] { font-family: var(--font-mono); letter-spacing: 0.12em; }
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+  padding-right: 2.2rem; cursor: pointer;
+}
+select option { background: #181c2a; }
+
+/* Custom Searchable Select */
+.custom-select { position: relative; }
+.custom-select input[type="text"] { width: 100%; cursor: text; padding-right: 2.2rem; }
+.custom-select::after {
+  content: ''; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  width: 12px; height: 8px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; pointer-events: none;
+}
+.select-options {
+  position: absolute; top: 100%; left: 0; right: 0;
+  background: var(--surface2); border: 1px solid var(--border-md); border-radius: 8px;
+  margin-top: 4px; max-height: 200px; overflow-y: auto; z-index: 10;
+  display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.select-options.open { display: block; animation: fadeSlide 0.2s ease; }
+.select-options .option {
+  padding: 0.72rem 0.9rem; cursor: pointer; color: var(--text); font-size: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+.select-options .option:last-child { border-bottom: none; }
+.select-options .option:hover { background: var(--mode-accent-bg); color: var(--mode-accent); }
+.select-options .option.hidden { display: none; }
+
+textarea { resize: vertical; min-height: 88px; line-height: 1.55; }
+
+input[type="file"] { padding: 0.55rem 0.7rem; cursor: pointer; }
+input[type="file"]::file-selector-button {
+  background: transparent;
+  color: var(--mode-accent);
+  border: 1px solid var(--mode-accent-dim);
+  padding: 0.35rem 0.9rem; border-radius: 6px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 0.75rem;
+  margin-right: 10px; transition: background 0.2s, color 0.4s, border-color 0.4s;
+}
+input[type="file"]::file-selector-button:hover { background: var(--mode-accent-bg); }
+
+/* ─────────────────────────────────────────
+   TABS
+───────────────────────────────────────── */
+.tabs-wrap {
+  padding: 0 1.75rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.tabs { display: flex; }
+.tab-btn {
+  background: none; border: none;
+  padding: 0.88rem 1.2rem;
+  font-family: var(--font-body); font-size: 0.85rem; font-weight: 500;
+  color: var(--muted); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+  position: relative; top: 1px;
+}
+.tab-btn.active   { color: var(--mode-accent); border-bottom-color: var(--mode-accent); }
+.tab-btn:hover:not(.active) { color: var(--text); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ─────────────────────────────────────────
+   DYNAMIC FIELDS
+───────────────────────────────────────── */
+.dynamic-fields { display: none; }
+.dynamic-fields.active {
+  display: block;
+  animation: fadeSlide 0.25s ease;
+}
+@keyframes fadeSlide {
+  from { opacity:0; transform:translateY(-4px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.divider { height:1px; background:var(--border); margin: 1rem 0; }
+
+/* ─────────────────────────────────────────
+   CSV INFO
+───────────────────────────────────────── */
+.csv-info {
+  background: var(--mode-accent-bg);
+  border: 1px solid var(--mode-accent-dim);
+  border-radius: 10px;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1rem;
+  transition: background 0.4s, border-color 0.4s;
+}
+.csv-info p { font-size: 0.82rem; color: var(--subtle); line-height: 1.65; }
+.csv-info code {
+  font-family: var(--font-mono); font-size: 0.74rem;
+  color: var(--mode-accent); background: rgba(0,0,0,0.25);
+  padding: 3px 6px; border-radius: 4px;
+  display: block; margin-top: 7px; word-break: break-all;
+  transition: color 0.4s;
+}
+
+/* ─────────────────────────────────────────
+   SUBMIT
+───────────────────────────────────────── */
+.submit-wrap {
+  padding: 1.2rem 1.75rem;
+  background: rgba(0,0,0,0.15);
+  border-top: 1px solid var(--border);
+}
+.submit-btn {
+  width: 100%;
+  background: var(--mode-accent);
+  color: #fff;
+  border: none;
+  padding: 0.9rem 1.5rem; border-radius: 10px;
+  font-family: var(--font-head); font-size: 0.95rem; font-weight: 700;
+  cursor: pointer; letter-spacing: 0.02em;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: opacity 0.2s, transform 0.15s, background 0.4s;
+}
+.submit-btn:hover  { opacity: 0.85; }
+.submit-btn:active { transform: scale(0.985); }
+.submit-btn svg { width:16px; height:16px; flex-shrink:0; }
+
+.save-btn {
+  background: var(--mode-accent);
+  color: #fff;
+  border: none;
+  padding: 0.7rem 1.2rem;
+  border-radius: 8px;
+  font-family: var(--font-head);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s, background 0.4s;
+}
+.save-btn:hover { opacity: 0.85; }
+.save-btn:active { transform: scale(0.98); }
+
+/* ─────────────────────────────────────────
+   STATUS BAR
+───────────────────────────────────────── */
+.status-bar {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: 0.7rem;
+  color: var(--muted); margin-top: 1.2rem;
+  justify-content: center;
+}
+.dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--mode-accent);
+  animation: blink 2s ease-in-out infinite;
+  transition: background 0.4s;
+}
+/* ─────────────────────────────────────────
+   VALIDATION STYLING
+───────────────────────────────────────── */
+input.touched:invalid, textarea.touched:invalid, select.touched:invalid {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.18) !important;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── CUSTOM FIELD DROPDOWN ──────────────────────── */
+.custom-select { position: relative; }
+.custom-select input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border-md);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 0.55rem 0.75rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.custom-select input:focus {
+  border-color: var(--mode-accent);
+  box-shadow: 0 0 0 3px var(--mode-accent-glow);
+}
+.select-options {
+  display: none;
+  position: absolute;
+  z-index: 999;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border-md);
+  border-radius: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+}
+.select-options.open { display: block; }
+.select-options .option {
+  padding: 0.55rem 0.9rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+  font-size: 0.85rem;
+}
+.select-options .option:last-child { border-bottom: none; }
+.select-options .option:hover { background: var(--mode-accent-bg); }
+/* ── AUTH OVERLAY ──────────────────────── */
+#authOverlay {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.3s;
+}
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border-md);
+  border-radius: 16px;
+  padding: 2.5rem;
+  width: 100%; max-width: 400px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+.auth-title { font-family: var(--font-head); font-size: 1.5rem; color: #fff; margin-bottom: 0.5rem; text-align: center; }
+.auth-subtitle { color: var(--muted); font-size: 0.9rem; text-align: center; margin-bottom: 2rem; }
+.auth-tabs { display: flex; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+.auth-tab { cursor: pointer; color: var(--muted); font-weight: 500; font-size: 0.95rem; transition: color 0.2s; }
+.auth-tab.active { color: var(--mode-accent); border-bottom: 2px solid var(--mode-accent); padding-bottom: 0.5rem; margin-bottom: -0.5rem; }
+.auth-error { color: #ef4444; font-size: 0.85rem; text-align: center; margin-bottom: 1rem; min-height: 1.2rem; }
+.auth-btn { width: 100%; margin-top: 1.2rem; padding: 0.8rem; background: var(--mode-accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+.auth-btn:hover { background: var(--mode-accent-dim); }
+.pwd-wrap { position: relative; }
+.pwd-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--muted); padding: 4px; }
+.pwd-toggle:hover { color: var(--text); }
+.auth-extra { display: none; margin-top: 0.8rem; }
+.avatar-preview { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--surface2); border: 1px solid var(--border); display: none; }
+.top-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--surface2); }
+
+/* ── FORMULA BUILDER ──────────────────────── */
+.fx-builder { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 0.75rem; overflow: hidden; }
+.fx-header { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.9rem; cursor: pointer; user-select: none; transition: background 0.15s; }
+.fx-header:hover { background: var(--mode-accent-bg); }
+.fx-header-left { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.85rem; color: var(--text); }
+.fx-header-left svg { color: var(--mode-accent); }
+.fx-chevron { transition: transform 0.2s; color: var(--muted); }
+.fx-builder.open .fx-chevron { transform: rotate(180deg); }
+.fx-body { display: none; padding: 0.5rem 0.9rem 0.9rem; }
+.fx-builder.open .fx-body { display: block; }
+.fx-cats { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.7rem; }
+.fx-cat-btn { padding: 0.3rem 0.65rem; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 0.72rem; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+.fx-cat-btn:hover, .fx-cat-btn.active { background: var(--mode-accent); color: white; border-color: var(--mode-accent); }
+.fx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.3rem; max-height: 200px; overflow-y: auto; }
+.fx-fn { padding: 0.35rem 0.5rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; text-align: center; transition: all 0.15s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-fn:hover { background: var(--mode-accent); color: white; border-color: var(--mode-accent); transform: translateY(-1px); }
+.fx-fn .fx-hint { display: block; font-family: var(--font-body); font-size: 0.62rem; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-fn:hover .fx-hint { color: rgba(255,255,255,0.7); }
+.fx-search { width: 100%; margin-bottom: 0.5rem; padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.8rem; outline: none; }
+.fx-search:focus { border-color: var(--mode-accent); box-shadow: 0 0 0 2px var(--mode-accent-glow); }
+</style>
+
+</head>
+<body class="sandbox" id="appBody">
+
+<!-- AUTH OVERLAY -->
+<div id="authOverlay">
+  <div class="auth-card">
+    <div class="auth-title">Salesforce Automator</div>
+    <div class="auth-subtitle">Welcome back. Please log in to continue.</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Log In</div>
+      <div class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">Register</div>
+    </div>
+    <div class="auth-error" id="authError"></div>
+    <div class="field">
+      <label for="authUsername">Username</label>
+      <input type="text" id="authUsername" placeholder="Enter username">
+    </div>
+    <div class="field auth-extra">
+      <label for="authFullName">Full Name</label>
+      <input type="text" id="authFullName" placeholder="e.g. Jane Doe">
+    </div>
+    <div class="field auth-extra">
+      <label for="authProfilePic">Profile Picture</label>
+      <div style="display:flex; gap:0.5rem; align-items:center;">
+        <img id="authAvatarPreview" class="avatar-preview">
+        <input type="file" id="authProfilePic" accept="image/*" onchange="previewAvatar(this)" style="padding: 0.4rem; font-size: 0.75rem;">
+      </div>
+    </div>
+    <div class="field" style="margin-top:0.8rem">
+      <label for="authPassword">Password</label>
+      <div class="pwd-wrap">
+        <input type="password" id="authPassword" placeholder="••••••••" style="padding-right: 2.5rem;">
+        <div class="pwd-toggle" onclick="togglePassword('authPassword', this)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <button class="auth-btn" id="authBtn" onclick="submitAuth()">Log In</button>
+  </div>
+</div>
+
+<div class="shell">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7l10 5 10-5-10-5z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17l10 5 10-5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12l10 5 10-5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>Salesforce Automator</h1>
+        <p>field creation &amp; bulk operations</p>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <div style="font-size: 0.8rem; color: var(--text); margin-right: 1rem; display: flex; align-items: center; gap: 0.6rem; font-weight: 500;">
+        <img id="topAvatar" class="top-avatar" style="display:none;" />
+        <span id="loggedInUser"></span>
+        <button class="save-btn" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; margin-left: 0.5rem;" onclick="logout()">Logout</button>
+      </div>
+      <div class="mode-badge" id="modeBadge">
+        <span class="blink"></span>
+        <span id="badgeText">SANDBOX</span>
+      </div>
+      <button class="settings-btn" id="settingsBtn" onclick="toggleSettings()" title="Settings" aria-label="Open settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="dashboard-layout">
+  <!-- SETTINGS PANEL -->
+  <div class="settings-panel" id="settingsPanel">
+    <div class="settings-inner">
+      <div class="settings-title">Environment Mode</div>
+      <div class="mode-grid">
+
+        <!-- Sandbox -->
+        <div class="mode-card sandbox selected" id="card-sandbox" onclick="setMode('sandbox', true)">
+          <div class="mode-check">
+            <svg viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><polyline points="2,5 4,7.5 8,2.5"/></svg>
+          </div>
+          <div class="mode-card-header">
+            <div class="mode-icon sandbox">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <span class="mode-name">Sandbox</span>
+          </div>
+          <p class="mode-desc">Safe testing environment. No real data affected. Recommended for development.</p>
+        </div>
+
+        <!-- Production -->
+        <div class="mode-card production" id="card-production" onclick="setMode('production', true)">
+          <div class="mode-check">
+            <svg viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><polyline points="2,5 4,7.5 8,2.5"/></svg>
+          </div>
+          <div class="mode-card-header">
+            <div class="mode-icon production">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <span class="mode-name">Production</span>
+          </div>
+          <p class="mode-desc">Live env. Changes are permanent. Use with caution.</p>
+        </div>
+
+        <!-- Development -->
+        <div class="mode-card development" id="card-development" onclick="setMode('development', true)">
+          <div class="mode-check">
+            <svg viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><polyline points="2,5 4,7.5 8,2.5"/></svg>
+          </div>
+          <div class="mode-card-header">
+            <div class="mode-icon development">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34" />
+                <polygon points="18 2 22 6 12 16 8 16 8 12 18 2" />
+              </svg>
+            </div>
+            <span class="mode-name">Development</span>
+          </div>
+          <p class="mode-desc">Scratch org or dev edition. Ideal for building features.</p>
+        </div>
+
+      </div>
+      <div class="settings-note" id="settingsNote">
+        🔵 Sandbox mode active — UI is blue. Safe to test.
+      </div>
+
+      <div class="settings-divider"></div>
+      <div class="settings-creds-title">Credentials</div>
+
+      <div class="field">
+        <label for="projectSelector">Select Project</label>
+        <select id="projectSelector" onchange="loadProjectCredentials()">
+          <option value="Default">Default</option>
+          <option value="_new_">+ Create New Project</option>
+        </select>
+      </div>
+      
+      <div class="field" id="newProjectNameWrap" style="display:none;">
+        <label for="projectName">New Project Name</label>
+        <input type="text" id="projectName" placeholder="e.g. Acme Corp">
+      </div>
+
+      <div class="field">
+        <label for="url">Login URL</label>
+        <input type="url" id="url" value="https://test.salesforce.com/" required>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" placeholder="you@org.com" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="••••••••" required>
+        </div>
+      </div>
+      <div class="settings-save-wrap" style="margin-top: 1.2rem; display: flex; justify-content: flex-end;">
+        <button type="button" class="save-btn" onclick="saveSettings()">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CARD -->
+  <div class="card">
+    <div class="card-accent-bar"></div>
+
+    <form id="salesforceForm">
+
+      <!-- Tabs -->
+      <div class="tabs-wrap">
+        <div class="tabs">
+          <button type="button" class="tab-btn active" onclick="switchTab('single',event)">Single Field</button>
+          <button type="button" class="tab-btn" onclick="switchTab('change',event)">Change Field Type</button>
+          <button type="button" class="tab-btn" onclick="switchTab('validation',event)">Validation Rule</button>
+          <button type="button" class="tab-btn" onclick="switchTab('user',event)">Create User</button>
+          <button type="button" class="tab-btn" onclick="switchTab('bulk',event)">Bulk Upload</button>
+          <button type="button" class="tab-btn" onclick="switchTab('history',event)">History</button>
+        </div>
+      </div>
+
+      <!-- Single Tab -->
+      <div id="single-tab" class="tab-content active">
+        
+        <!-- Field Config -->
+        <div class="section" id="section-field">
+          <div class="section-label">Field Configuration</div>
+          <div class="row">
+            <div class="field">
+              <label for="objectName">Object Name</label>
+              <input type="text" id="objectName" value="Account" class="single-req">
+            </div>
+            <div class="field">
+              <label for="dataTypeSearch">Data Type</label>
+              <div class="custom-select" id="customSelect">
+                <input type="text" id="dataTypeSearch" placeholder="Select type..." autocomplete="off" class="single-req">
+                <div class="select-options" id="selectOptions">
+                  <div class="option" data-value="Number">Number</div>
+                  <div class="option" data-value="Currency">Currency</div>
+                  <div class="option" data-value="Date">Date</div>
+                  <div class="option" data-value="Date/Time">Date/Time</div>
+                  <div class="option" data-value="Phone">Phone</div>
+                  <div class="option" data-value="Picklist">Picklist</div>
+                  <div class="option" data-value="Text">Text</div>
+                </div>
+              </div>
+              <input type="hidden" id="dataType" class="single-req">
+            </div>
+          </div>
+
+          <div id="dynamicContainer">
+            <!-- Number -->
+            <div id="fields-Number" class="dynamic-fields">
+              <div class="divider"></div>
+              <div class="field">
+                <label>Field Label</label>
+                <input type="text" name="Number-FieldLabel" placeholder="e.g. Annual Revenue">
+              </div>
+              <div class="row">
+                <div class="field">
+                  <label>Length</label>
+                  <input type="number" name="Number-Length" value="18">
+                </div>
+                <div class="field">
+                  <label>Decimal Places</label>
+                  <input type="number" name="Number-DecimalPlaces" value="0">
+                </div>
+              </div>
+              <div class="field">
+                <label>API Name</label>
+                <input type="text" name="Number-FieldName" placeholder="Annual_Revenue__c" style="font-family:var(--font-mono);font-size:0.83rem;">
+              </div>
+            </div>
+            <!-- Currency -->
+            <div id="fields-Currency" class="dynamic-fields">
+              <div class="divider"></div>
+              <div class="field">
+                <label>Field Label</label>
+                <input type="text" name="Currency-FieldLabel" placeholder="e.g. Annual Revenue">
+              </div>
+              <div class="row">
+                <div class="field">
+                  <label>Length</label>
+                  <input type="number" name="Currency-Length" value="16">
+                </div>
+                <div class="field">
+                  <label>Decimal Places</label>
+                  <input type="number" name="Currency-DecimalPlaces" value="2">
+                </div>
+              </div>
+              <div class="field">
+                <label>API Name</label>
+                <input type="text" name="Currency-FieldName" placeholder="Annual_Revenue__c" style="font-family:var(--font-mono);font-size:0.83rem;">
+              </div>
+            </div>
+            <!-- Date -->
+            <div id="fields-Date" class="dynamic-fields">
+              <div class="divider"></div>
+              <div class="field">
+                <label>Field Label</label>
+                <input type="text" name="Date-FieldLabel" placeholder="e.g. Birthdate">
+              </div>
+              <div class="field">
+                <label>API Name</label>
+                <input type="text" name="Date-FieldName" placeholder="Birthdate__c" style="font-family:var(--font-mono);font-size:0.83rem;">
+              </div>
+            </div>
+            <!-- Date/Time -->
+            <div id="fields-Date/Time" class="dynamic-fields">
+              <div class="divider"></div>
+              <div class="field">
+                <label>Field Label</label>
+                <input type="text" name="Date/Time-FieldLabel" placeholder="e.g. Created Date">
+              </div>
+              <div class="field">
+                <label>API Name</label>
+                <input type="text" name="Date/Time-FieldName" placeholder="Created_Date__c" style="font-family:var(--font-mono);font-size:0.83rem;">
+              </div>
+            </div>
+            <!-- Phone -->
+            <div id="fields-Phone" class="dynamic-fields">
+              <div class="divider"></div>
+              <div class="field">
+                <label>Field Label</label>
+                <input type="text" name="Phone-FieldLabel" placeholder="e.g. Mobile Phone">
+              </div>
+              <div class="field">
+                <label>API Name</label>
+                <input type="text" name="Phone-FieldName" placeholder="Mobile_Phone__c" style="font-family:var(--font-mono);font-size:0.83rem;">
+              </div>
+            </div>
+            <!-- Picklist -->
+            <div id="fields-Picklist" class="dynamic-fields">
+              <div class="divider"></div>
+              <div class="field">
+                <label>Field Label</label>
+                <input type="text" name="Picklist-FieldLabel" placeholder="e.g. Status">
+              </div>
+              <div class="field">
+                <label>Values <span style="font-weight:300;color:var(--muted)">(one per line)</span></label>
+                <textarea name="Picklist-Values" placeholder="Active&#10;Inactive&#10;Pending"></textarea>
+              </div>
+              <div class="field">
+                <label>API Name</label>
+                <input type="text" name="Picklist-FieldName" placeholder="Status__c" style="font-family:var(--font-mono);font-size:0.83rem;">
+              </div>
+            </div>
+            <!-- Text -->
+            <div id="fields-Text" class="dynamic-fields">
+              <div class="divider"></div>
+              <div class="field">
+                <label>Field Label</label>
+                <input type="text" name="Text-FieldLabel" placeholder="e.g. External ID">
+              </div>
+              <div class="field">
+                <label>Length</label>
+                <input type="number" name="Text-Length" value="255">
+              </div>
+              <div class="field">
+                <label>API Name</label>
+                <input type="text" name="Text-FieldName" placeholder="External_ID__c" style="font-family:var(--font-mono);font-size:0.83rem;">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Change Field Type Tab -->
+      <div id="change-tab" class="tab-content">
+        <!-- Field Config -->
+        <div class="section" id="section-change">
+          <div class="section-label">Change Field Type Configuration</div>
+          <div class="field">
+            <label for="changeObjectName">Object Name</label>
+            <input type="text" id="changeObjectName" value="Account" class="change-req">
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="changeFieldName">Field API Name (e.g. My_Custom_Field__c)</label>
+              <input type="text" id="changeFieldName" placeholder="Enter API Name..." class="change-req" style="font-family:var(--font-mono);font-size:0.83rem;">
+            </div>
+            <div class="field">
+              <label for="changeDataTypeSearch">New Data Type</label>
+              <div class="custom-select" id="changeCustomSelect">
+                <input type="text" id="changeDataTypeSearch" placeholder="Select type..." autocomplete="off" class="change-req">
+                <div class="select-options" id="changeSelectOptions">
+                  <div class="option" data-value="Number">Number</div>
+                  <div class="option" data-value="Currency">Currency</div>
+                  <div class="option" data-value="Date">Date</div>
+                  <div class="option" data-value="Date/Time">Date/Time</div>
+                  <div class="option" data-value="Phone">Phone</div>
+                  <div class="option" data-value="Picklist">Picklist</div>
+                  <div class="option" data-value="Text">Text</div>
+                </div>
+              </div>
+              <input type="hidden" id="changeDataType" class="change-req">
+            </div>
+          </div>
+
+          <div id="changeDynamicContainer">
+            <!-- Number -->
+            <div id="changeFields-Number" class="dynamic-fields">
+              <div class="divider"></div>
+              <div class="row">
+                <div class="field">
+                  <label>Length</label>
+                  <input type="number" name="ChangeNumber-Length" value="18">
+                </div>
+                <div class="field">
+                  <label>Decimal Places</label>
+                  <input type="number" name="ChangeNumber-DecimalPlaces" value="0">
+                </div>
+              </div>
+            </div>
+            <!-- Currency -->
+            <div id="changeFields-Currency" class="dynamic-fields">
+              <div class="divider"></div>
+              <div class="row">
+                <div class="field">
+                  <label>Length</label>
+                  <input type="number" name="ChangeCurrency-Length" value="16">
+                </div>
+                <div class="field">
+                  <label>Decimal Places</label>
+                  <input type="number" name="ChangeCurrency-DecimalPlaces" value="2">
+                </div>
+              </div>
+            </div>
+            <!-- Picklist -->
+            <div id="changeFields-Picklist" class="dynamic-fields">
+              <div class="divider"></div>
+              <div class="field">
+                <label>Values <span style="font-weight:300;color:var(--muted)">(one per line)</span></label>
+                <textarea name="ChangePicklist-Values" placeholder="Active&#10;Inactive&#10;Pending"></textarea>
+              </div>
+            </div>
+            <!-- Text -->
+            <div id="changeFields-Text" class="dynamic-fields">
+              <div class="divider"></div>
+              <div class="field">
+                <label>Length</label>
+                <input type="number" name="ChangeText-Length" value="255">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Validation Tab -->
+      <div id="validation-tab" class="tab-content">
+        <!-- Validation Rule Config -->
+        <div class="section" id="section-validation">
+          <div class="section-label">Validation Rule Configuration</div>
+          <div class="row">
+            <div class="field">
+              <label for="valObjectName">Object Name</label>
+              <input type="text" id="valObjectName" value="Account" placeholder="e.g. Account, Contact, Custom_Object__c" pattern="^[a-zA-Z][a-zA-Z0-9_]*(__c)?$" title="Enter a valid Salesforce Object API Name." class="single-val-req" oninput="scheduleFieldLoad()" onblur="loadObjectFields()">
+            </div>
+            <div class="field">
+              <label for="valRuleName">Rule Name</label>
+              <input type="text" id="valRuleName" placeholder="e.g. Prevent_Invalid_Age" pattern="^[a-zA-Z][a-zA-Z0-9_]*$" title="Only letters, numbers, and underscores are allowed (no spaces)." class="single-val-req">
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="valTargetField">Target Field Name</label>
+              <div class="custom-select" id="valTargetFieldWrap">
+                <input type="text" id="valTargetField" placeholder="Select a field for auto-preset…" autocomplete="off" oninput="filterValFields('valTargetField')" onfocus="openValFieldDropdown('valTargetField')">
+                <div class="select-options" id="valTargetFieldOptions"></div>
+              </div>
+            </div>
+            <div class="field">
+            <label for="valTemplate">Auto Formula Preset</label>
+            <select id="valTemplate" onchange="applyValPreset()">
+              <option value="">-- Choose a template --</option>
+              <optgroup label="Field Checks">
+                <option value="required">Required Field Check (ISBLANK)</option>
+                <option value="null_check">Null Value Check (ISNULL)</option>
+                <option value="number_check">Must Be Numeric (ISNUMBER)</option>
+                <option value="field_changed">Prevent Field Change (ISCHANGED)</option>
+              </optgroup>
+              <optgroup label="Text Validations">
+                <option value="email">Email Format (REGEX)</option>
+                <option value="phone">Phone Number Format (REGEX)</option>
+                <option value="pan">PAN Format — ABCDE1234F (REGEX)</option>
+                <option value="min_length">Minimum Length Check (LEN)</option>
+                <option value="max_length">Maximum Length Check (LEN)</option>
+                <option value="no_special">No Special Characters (REGEX)</option>
+                <option value="url_format">URL Format (REGEX)</option>
+                <option value="begins_with">Must Begin With… (BEGINS)</option>
+                <option value="contains_check">Must Contain… (CONTAINS)</option>
+              </optgroup>
+              <optgroup label="Date Validations">
+                <option value="past_date">Prevent Past Date (&lt; TODAY)</option>
+                <option value="future_date">Prevent Future Date (&gt; TODAY)</option>
+                <option value="end_date">End Date &gt; Start Date</option>
+                <option value="weekday_only">Weekdays Only (no weekends)</option>
+                <option value="age_check">Minimum Age Check (18+)</option>
+              </optgroup>
+              <optgroup label="Number Validations">
+                <option value="negative">Prevent Negative Values</option>
+                <option value="range">Value Within Range (1–100)</option>
+                <option value="multiple_of">Must Be Multiple Of…</option>
+                <option value="max_value">Maximum Value</option>
+              </optgroup>
+              <optgroup label="Picklist Validations">
+                <option value="picklist_required">Picklist Cannot Be Blank (ISPICKVAL)</option>
+                <option value="picklist_block">Block Specific Picklist Value</option>
+              </optgroup>
+              <optgroup label="Cross-Field / Advanced">
+                <option value="conditional_required">Conditional Required Field</option>
+                <option value="both_or_none">Both Fields or Neither</option>
+                <option value="admin_bypass">Admin Bypass Rule ($Profile)</option>
+              </optgroup>
+            </select>
+          </div>
+          </div>
+          <!-- Formula Builder Panel -->
+          <div class="fx-builder" id="fxBuilder">
+            <div class="fx-header" onclick="document.getElementById('fxBuilder').classList.toggle('open')">
+              <div class="fx-header-left">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
+                Formula Function Reference
+              </div>
+              <svg class="fx-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="fx-body">
+              <input type="text" class="fx-search" id="fxSearch" placeholder="Search functions… e.g. ISBLANK, REGEX, TODAY" oninput="filterFxFunctions()">
+              <div class="fx-cats" id="fxCats"></div>
+              <div class="fx-grid" id="fxGrid"></div>
+            </div>
+          </div>
+          <div class="field">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.4rem;">
+              <label for="valFormula" style="margin-bottom:0;">Error Condition Formula</label>
+              <span style="font-family:var(--font-mono); font-size:0.68rem; color:var(--muted);">Click a function above to insert it</span>
+            </div>
+            <textarea id="valFormula" placeholder="e.g. Age__c < 18" class="single-val-req" style="min-height:80px; font-family:var(--font-mono); font-size:0.8rem;"></textarea>
+          </div>
+          <div class="row">
+            <div class="field">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.4rem;">
+                <label for="valErrorMsg" style="margin-bottom:0;">Error Message</label>
+                <span id="valErrorMsgCounter" style="font-family:var(--font-mono); font-size:0.7rem; color:var(--muted);">0 / 255</span>
+              </div>
+              <textarea id="valErrorMsg" placeholder="e.g. Age must be 18 or older." maxlength="255" class="single-val-req" style="min-height:60px;"></textarea>
+            </div>
+            <div class="field">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.4rem;">
+                <label for="valErrorField" style="margin-bottom:0;">Error Location Field <span style="font-weight:300;color:var(--muted)">(Optional)</span></label>
+                <span id="valFieldsStatus" style="font-family:var(--font-mono); font-size:0.68rem; color:var(--muted);"></span>
+              </div>
+              <div class="custom-select" id="valErrorFieldWrap">
+                <input type="text" id="valErrorField" placeholder="Type or select a field…" autocomplete="off" oninput="filterValFields('valErrorField')" onfocus="openValFieldDropdown('valErrorField')">
+                <div class="select-options" id="valErrorFieldOptions"></div>
+              </div>
+              <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Leave blank for 'Top of Page'</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+            <!-- User Tab -->
+      <div id="user-tab" class="tab-content">
+        <div class="section" id="section-user">
+          <div class="section-label">User Configuration</div>
+          <div class="field" style="margin-bottom: 1rem;">
+            <label for="userActionSelect">Action</label>
+            <select id="userActionSelect" class="single-user-req" onchange="toggleUserAction()" style="width: 100%; padding: 0.55rem; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border-md); color: var(--text);">
+              <option value="create">Create New User</option>
+              <option value="update">Update Existing User Status</option>
+            </select>
+          </div>
+          <div id="userCreateFields">
+          <div class="row">
+            <div class="field">
+              <label for="userFirstName">First Name</label>
+              <input type="text" id="userFirstName" placeholder="e.g. John">
+            </div>
+            <div class="field">
+              <label for="userLastName">Last Name</label>
+              <input type="text" id="userLastName" placeholder="e.g. Doe" class="single-user-req">
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="userEmail">Email</label>
+              <input type="email" id="userEmail" placeholder="you@example.com" class="single-user-req" oninput="updateUserUsername()">
+            </div>
+            <div class="field">
+              <label for="userUsername">Username</label>
+              <input type="email" id="userUsername" placeholder="Auto-fills based on email" class="single-user-req">
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="userRole">Role (Optional)</label>
+              <input type="text" id="userRole" placeholder="e.g. CEO">
+            </div>
+            <div class="field">
+              <label for="userLicense">User License</label>
+              <input type="text" id="userLicense" placeholder="e.g. Salesforce">
+            </div>
+          </div>
+          <div class="field">
+            <label for="userProfile">Profile</label>
+            <input type="text" id="userProfile" placeholder="e.g. System Administrator">
+          </div>
+          <div class="field">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="userGenPassword" style="width:auto; transform:scale(1.2);">
+              Generate new password and notify user immediately
+            </label>
+            <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;" id="userGenPasswordNote">Disabled in Sandbox mode.</div>
+          </div>
+          </div>
+          <div id="userUpdateFields" style="display: none;">
+            <div class="field">
+              <label for="updateUserUsername">Username (to search for)</label>
+              <input type="email" id="updateUserUsername" placeholder="e.g. you@example.com">
+            </div>
+            <div class="field">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" id="updateUserActive" style="width:auto; transform:scale(1.2);" checked>
+                User is Active
+              </label>
+              <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Check to activate, uncheck to deactivate.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bulk Tab -->
+      <div id="bulk-tab" class="tab-content">
+        <div class="section">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.1rem;">
+            <div class="section-label" style="margin-bottom:0; flex:1;">Bulk Upload</div>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="save-btn" style="padding:0.4rem 0.8rem; font-size:0.75rem; border-radius:6px;" onclick="downloadTemplate('field')">Field Template</button>
+              <button type="button" class="save-btn" style="padding:0.4rem 0.8rem; font-size:0.75rem; border-radius:6px;" onclick="downloadTemplate('validation')">Validation Template</button>
+              <button type="button" class="save-btn" style="padding:0.4rem 0.8rem; font-size:0.75rem; border-radius:6px;" onclick="downloadTemplate('user')">User Template</button>
+              <button type="button" class="save-btn" style="padding:0.4rem 0.8rem; font-size:0.75rem; border-radius:6px;" onclick="downloadTemplate('user_update')">Update Status Template</button>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+            <div class="csv-info" style="margin-bottom:0;">
+              <p style="font-weight: 500; margin-bottom: 4px;">Custom Fields CSV Headers:</p>
+              <code style="font-size:0.7rem; word-break:break-all;">ObjectName,DataType,FieldLabel,FieldName,Length,DecimalPlaces,PicklistValues</code>
+            </div>
+            <div class="csv-info" style="margin-bottom:0;">
+              <p style="font-weight: 500; margin-bottom: 4px;">Validation Rules CSV Headers:</p>
+              <code style="font-size:0.7rem; word-break:break-all;">ObjectName,RuleName,Formula,ErrorMessage,ErrorField</code>
+            </div>
+            <div class="csv-info" style="margin-bottom:0;">
+              <p style="font-weight: 500; margin-bottom: 4px;">Users CSV Headers:</p>
+              <code style="font-size:0.7rem; word-break:break-all;">FirstName,LastName,Email,Username,GeneratePassword,Role,License,Profile</code>
+            </div>
+          </div>
+          <div class="field">
+            <label for="csvFile">CSV File <span style="font-weight:300;color:var(--muted)">(Auto-detects format)</span></label>
+            <input type="file" id="csvFile" accept=".csv" class="bulk-req">
+          </div>
+        </div>
+      </div>
+
+      <!-- History Tab -->
+      <div id="history-tab" class="tab-content">
+        <div class="section">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.1rem;">
+            <div class="section-label" style="margin-bottom:0; flex:1;">Field Creation History</div>
+            <input type="text" id="historySearch" placeholder="Search history..." style="width: 250px; padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border-md); color: var(--text);" oninput="filterHistory()">
+            <button type="button" class="save-btn" style="padding:0.4rem 0.8rem; font-size:0.75rem; margin-left:1rem; border-radius:6px;" onclick="exportHistory()">Export CSV</button>
+          </div>
+          <div style="overflow-x: auto;">
+            <table style="width:100%; text-align:left; border-collapse:collapse; font-size:0.85rem;">
+              <thead>
+                <tr style="border-bottom:1px solid var(--border); color:var(--mode-accent);">
+                  <th style="padding:0.75rem 0.5rem; font-weight:500;">Timestamp</th>
+                  <th style="padding:0.75rem 0.5rem; font-weight:500;">Project</th>
+                  <th style="padding:0.75rem 0.5rem; font-weight:500;">Object</th>
+                  <th style="padding:0.75rem 0.5rem; font-weight:500;">Data Type</th>
+                  <th style="padding:0.75rem 0.5rem; font-weight:500;">Label</th>
+                  <th style="padding:0.75rem 0.5rem; font-weight:500;">API Name</th>
+                  <th style="padding:0.75rem 0.5rem; font-weight:500;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody">
+                <tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--muted);">Loading history...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="historyPagination" style="display:flex; justify-content:flex-end; gap:8px; margin-top:1rem; align-items:center;">
+             <button type="button" class="save-btn" style="padding:0.3rem 0.6rem; font-size:0.75rem; border-radius:6px;" onclick="prevHistoryPage()">Prev</button>
+             <span id="historyPageInfo" style="font-size:0.8rem; color:var(--muted);">Page 1 of 1</span>
+             <button type="button" class="save-btn" style="padding:0.3rem 0.6rem; font-size:0.75rem; border-radius:6px;" onclick="nextHistoryPage()">Next</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <div class="submit-wrap">
+        <button type="submit" class="submit-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          <span id="btn-label">Run Automation</span>
+        </button>
+      </div>
+
+    </form>
+  </div>
+  </div><!-- end dashboard-layout -->
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span class="dot"></span>
+    <span id="statusText">sandbox mode — ready</span>
+  </div>
+
+</div>
+
+<script>
+  // ── SETTINGS PANEL ──────────────────────────────
+  let settingsOpen = false;
+  let currentEnvMode = localStorage.getItem('sf_env_mode') || 'sandbox';
+  let userCredentials = {};
+
+  const API_BASE = 'http://localhost:8000';
+  const customFetch = (url, options = {}) => {
+    options.credentials = 'include';
+    return fetch(url.startsWith('http') ? url : API_BASE + url, options);
+  };
+
+  function toggleSettings() {
+    settingsOpen = !settingsOpen;
+    document.getElementById('settingsPanel').classList.toggle('open', settingsOpen);
+    document.getElementById('settingsBtn').classList.toggle('open', settingsOpen);
+  }
+
+  async function saveSettings() {
+    let projName = document.getElementById('projectSelector').value;
+    if (projName === '_new_') {
+      projName = document.getElementById('projectName').value.trim();
+      if (!projName) {
+        alert('Please enter a project name.');
+        return;
+      }
+    }
+    
+    const url = document.getElementById('url').value;
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    
+    try {
+      const res = await customFetch('/api/auth/creds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ env_mode: currentEnvMode, project_name: projName, sf_url: url, sf_username: username, sf_password: password })
+      });
+      if (res.ok) {
+        if (!userCredentials[currentEnvMode]) userCredentials[currentEnvMode] = [];
+        const list = userCredentials[currentEnvMode];
+        const existing = list.find(p => p.project_name === projName);
+        if (existing) {
+          existing.sf_url = url; existing.sf_username = username; existing.sf_password = password;
+        } else {
+          list.push({ project_name: projName, sf_url: url, sf_username: username, sf_password: password });
+        }
+        
+        updateProjectDropdown();
+        document.getElementById('projectSelector').value = projName;
+        document.getElementById('newProjectNameWrap').style.display = 'none';
+        
+        toggleSettings();
+        document.getElementById('statusText').textContent = 'credentials saved securely';
+      } else {
+        document.getElementById('statusText').textContent = 'error saving credentials';
+      }
+    } catch(e) {
+      document.getElementById('statusText').textContent = 'network error';
+    }
+  }
+
+  function loadProjectCredentials() {
+    const sel = document.getElementById('projectSelector').value;
+    if (sel === '_new_') {
+      document.getElementById('newProjectNameWrap').style.display = 'block';
+      document.getElementById('projectName').value = '';
+      document.getElementById('url').value = currentEnvMode === 'sandbox' ? 'https://test.salesforce.com/' : 'https://login.salesforce.com/';
+      document.getElementById('username').value = '';
+      document.getElementById('password').value = '';
+    } else {
+      document.getElementById('newProjectNameWrap').style.display = 'none';
+      document.getElementById('projectName').value = '';
+      
+      const modeCredsList = userCredentials[currentEnvMode] || [];
+      const proj = modeCredsList.find(p => p.project_name === sel);
+      if (proj) {
+         document.getElementById('url').value = proj.sf_url || '';
+         document.getElementById('username').value = proj.sf_username || '';
+         document.getElementById('password').value = proj.sf_password || '';
+      }
+    }
+  }
+
+  function updateProjectDropdown() {
+    const sel = document.getElementById('projectSelector');
+    if (!sel) return;
+    const modeCredsList = userCredentials[currentEnvMode] || [];
+    
+    let currentVal = sel.value;
+    sel.innerHTML = '';
+    
+    modeCredsList.forEach(p => {
+       const opt = document.createElement('option');
+       opt.value = p.project_name;
+       opt.textContent = p.project_name;
+       sel.appendChild(opt);
+    });
+    
+    const newOpt = document.createElement('option');
+    newOpt.value = '_new_';
+    newOpt.textContent = '+ Create New Project';
+    sel.appendChild(newOpt);
+    
+    if (modeCredsList.some(p => p.project_name === currentVal)) {
+      sel.value = currentVal;
+    } else if (modeCredsList.length > 0) {
+      sel.value = modeCredsList[0].project_name;
+    } else {
+      sel.value = '_new_';
+    }
+    
+    loadProjectCredentials();
+  }
+
+  // ── AUTHENTICATION ──────────────────────────────
+  let currentAuthTab = 'login';
+  
+  function switchAuthTab(tab) {
+    currentAuthTab = tab;
+    document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+    document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+    document.getElementById('authBtn').textContent = tab === 'login' ? 'Log In' : 'Register';
+    document.getElementById('authError').textContent = '';
+    
+    // Show/hide extra fields for registration
+    document.querySelectorAll('.auth-extra').forEach(el => {
+      el.style.display = tab === 'register' ? 'block' : 'none';
+    });
+  }
+
+  function togglePassword(inputId, iconEl) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+      input.type = 'text';
+      iconEl.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+    } else {
+      input.type = 'password';
+      iconEl.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+    }
+  }
+
+  let base64Avatar = '';
+  function previewAvatar(input) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        base64Avatar = e.target.result;
+        const preview = document.getElementById('authAvatarPreview');
+        preview.src = base64Avatar;
+        preview.style.display = 'block';
+      }
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  async function submitAuth() {
+    const username = document.getElementById('authUsername').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const fullName = document.getElementById('authFullName').value.trim();
+    if (!username || !password) {
+      document.getElementById('authError').textContent = 'Please enter username and password.';
+      return;
+    }
+    const endpoint = currentAuthTab === 'login' ? '/api/auth/login' : '/api/auth/register';
+    const payload = currentAuthTab === 'login' ? { username, password } : { username, password, full_name: fullName, profile_pic: base64Avatar };
+    
+    try {
+      const res = await customFetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        document.getElementById('authOverlay').style.opacity = '0';
+        setTimeout(() => document.getElementById('authOverlay').style.display = 'none', 300);
+        checkSession(); // load user data
+      } else {
+        const err = await res.json();
+        document.getElementById('authError').textContent = err.error || 'Authentication failed.';
+      }
+    } catch(e) {
+      document.getElementById('authError').textContent = 'Network error.';
+    }
+  }
+
+  async function logout() {
+    await customFetch('/api/auth/logout');
+    window.location.reload();
+  }
+
+  async function checkSession() {
+    try {
+      const res = await customFetch('/api/auth/me');
+      if (res.ok) {
+        const data = await res.json();
+        document.getElementById('authOverlay').style.display = 'none';
+        
+        userCredentials = data.credentials || {};
+        
+        document.getElementById('loggedInUser').textContent = data.full_name || data.username;
+        const topAvatar = document.getElementById('topAvatar');
+        if (data.profile_pic) {
+          topAvatar.src = data.profile_pic;
+          topAvatar.style.display = 'block';
+        } else {
+          topAvatar.style.display = 'none';
+        }
+
+        updateProjectDropdown();
+        if (typeof loadHistory === 'function') loadHistory();
+      } else {
+        const uatSessionStr = sessionStorage.getItem('uat_session');
+        if (uatSessionStr && !window.__autoLoginAttempted) {
+          window.__autoLoginAttempted = true;
+          try {
+            const uatUser = JSON.parse(uatSessionStr);
+            const autoRes = await customFetch('/api/auth/auto_login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                username: uatUser.username || uatUser.email || 'uat_user', 
+                full_name: uatUser.name || uatUser.username || 'UAT User' 
+              })
+            });
+            if (autoRes.ok) {
+              return checkSession();
+            }
+          } catch(e) { }
+        }
+        document.getElementById('authOverlay').style.display = 'flex';
+        document.getElementById('authOverlay').style.opacity = '1';
+      }
+    } catch(e) {
+      document.getElementById('authError').textContent = 'Cannot connect to server.';
+    }
+  }
+  
+  // Call immediately
+  checkSession();
+
+  function setMode(mode, isManualClick = false) {
+    currentEnvMode = mode;
+    localStorage.setItem('sf_env_mode', mode);
+
+    if (typeof updateUserUsername === 'function') {
+      updateUserUsername();
+      const pwdCheckbox = document.getElementById('userGenPassword');
+      if (pwdCheckbox) {
+        if (mode === 'sandbox' || mode === 'development') {
+          pwdCheckbox.checked = false;
+          pwdCheckbox.disabled = true;
+          document.getElementById('userGenPasswordNote').textContent = 'Disabled in Sandbox/Dev mode.';
+        } else {
+          pwdCheckbox.disabled = false;
+          pwdCheckbox.checked = true;
+          document.getElementById('userGenPasswordNote').textContent = 'Enabled in Production mode.';
+        }
+      }
+    }
+
+    const body = document.getElementById('appBody');
+    body.className = mode;
+
+    // Update badge
+    document.getElementById('badgeText').textContent = mode === 'production' ? 'PRODUCTION' : (mode === 'development' ? 'DEVELOPMENT' : 'SANDBOX');
+
+    // Update note
+    const note = document.getElementById('settingsNote');
+    if (mode === 'production') {
+      note.textContent = '🔴 Production mode active — UI is red. Real data will be modified!';
+    } else if (mode === 'development') {
+      note.textContent = '🟢 Development mode active — UI is green. For Dev/Scratch orgs.';
+    } else {
+      note.textContent = '🔵 Sandbox mode active — UI is blue. Safe to test.';
+    }
+
+    // Update status
+    document.getElementById('statusText').textContent =
+      mode === 'production' ? 'production mode — live environment' : (mode === 'development' ? 'development mode — ready' : 'sandbox mode — ready');
+
+    // Update card selections
+    document.getElementById('card-sandbox').classList.toggle('selected', mode === 'sandbox');
+    document.getElementById('card-production').classList.toggle('selected', mode === 'production');
+    document.getElementById('card-development').classList.toggle('selected', mode === 'development');
+
+    if (isManualClick) {
+      updateProjectDropdown();
+      const urlInput = document.getElementById('url');
+      if (urlInput) localStorage.setItem('sf_url', urlInput.value);
+    }
+  }
+
+  // Apply saved mode on load
+  setMode(currentEnvMode);
+
+  // ── TAB SWITCHING ────────────────────────────────
+    function toggleUserAction() {
+    const action = document.getElementById('userActionSelect').value;
+    if (action === 'create') {
+      document.getElementById('userCreateFields').style.display = 'block';
+      document.getElementById('userUpdateFields').style.display = 'none';
+      document.querySelectorAll('#userCreateFields .single-user-req').forEach(el => el.setAttribute('required', 'true'));
+      document.getElementById('updateUserUsername').removeAttribute('required');
+      document.getElementById('btn-label').textContent = 'Run User Automation';
+    } else {
+      document.getElementById('userCreateFields').style.display = 'none';
+      document.getElementById('userUpdateFields').style.display = 'block';
+      document.querySelectorAll('#userCreateFields .single-user-req').forEach(el => el.removeAttribute('required'));
+      document.getElementById('updateUserUsername').setAttribute('required', 'true');
+      document.getElementById('btn-label').textContent = 'Run Status Automation';
+    }
+  }
+
+  function updateUserUsername() {
+    const email = document.getElementById('userEmail').value.trim();
+    const username = document.getElementById('userUsername');
+    if (!username) return;
+    if (!email) {
+      username.value = '';
+      return;
+    }
+    if (currentEnvMode === 'sandbox' || currentEnvMode === 'development') {
+      username.value = email + '.uat';
+    } else {
+      username.value = email;
+    }
+  }
+  
+  let currentMode = 'single';
+  let currentTaskType = 'field';
+  function switchTab(mode, event) {
+    currentMode = mode;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    if (event) event.target.classList.add('active');
+    else {
+      const btn = document.querySelector(`.tab-btn[onclick*="'${mode}'"]`);
+      if (btn) btn.classList.add('active');
+    }
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.getElementById(`${mode}-tab`).classList.add('active');
+
+    if (mode === 'history') {
+      loadHistory();
+      document.querySelector('.submit-wrap').style.display = 'none';
+    } else {
+      document.querySelector('.submit-wrap').style.display = 'block';
+      if (mode === 'single') {
+        document.getElementById('btn-label').textContent = 'Run Field Automation';
+      } else if (mode === 'validation') {
+        document.getElementById('btn-label').textContent = 'Run Validation Automation';
+      } else if (mode === 'user') {
+        document.getElementById('btn-label').textContent = 'Run User Automation';
+      } else {
+        document.getElementById('btn-label').textContent = 'Run Bulk Automation';
+      }
+    }
+
+    if (mode === 'single') {
+      currentTaskType = 'field';
+      document.querySelectorAll('.single-req').forEach(el => el.setAttribute('required','true'));
+      document.querySelectorAll('.single-val-req').forEach(el => el.removeAttribute('required'));
+      document.querySelectorAll('.single-user-req').forEach(el => el.removeAttribute('required'));
+      document.querySelectorAll('.bulk-req').forEach(el => el.removeAttribute('required'));
+    } else if (mode === 'validation') {
+      currentTaskType = 'validation_rule';
+      document.querySelectorAll('.single-req').forEach(el => el.removeAttribute('required'));
+      document.querySelectorAll('.single-val-req').forEach(el => el.setAttribute('required','true'));
+      document.querySelectorAll('.single-user-req').forEach(el => el.removeAttribute('required'));
+      document.querySelectorAll('.bulk-req').forEach(el => el.removeAttribute('required'));
+      // Auto-load fields from history for the current object name
+      loadObjectFields();
+    } else if (mode === 'user') {
+      currentTaskType = 'user';
+      document.querySelectorAll('.single-req').forEach(el => el.removeAttribute('required'));
+      document.querySelectorAll('.single-val-req').forEach(el => el.removeAttribute('required'));
+      document.querySelectorAll('.single-user-req').forEach(el => el.setAttribute('required','true'));
+      document.querySelectorAll('.bulk-req').forEach(el => el.removeAttribute('required'));
+    } else if (mode === 'bulk') {
+      document.querySelectorAll('.single-req, .single-val-req, .single-user-req').forEach(el => el.removeAttribute('required'));
+      document.querySelectorAll('.bulk-req').forEach(el => el.setAttribute('required','true'));
+    } else {
+      document.querySelectorAll('.single-req, .single-val-req, .single-user-req, .bulk-req').forEach(el => el.removeAttribute('required'));
+    }
+  }
+  
+  let allHistoryData = [];
+  let filteredHistoryData = [];
+  let historyCurrentPage = 1;
+  const historyPerPage = 10;
+
+  async function loadHistory() {
+    const tbody = document.getElementById('historyTableBody');
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:1.5rem; color:var(--muted);">Loading history...</td></tr>';
+    try {
+      const res = await customFetch('/api/history');
+      if (res.ok) {
+        const data = await res.json();
+        allHistoryData = data.reverse();
+        filteredHistoryData = [...allHistoryData];
+        renderHistoryTable();
+      } else {
+        throw new Error('Failed to fetch');
+      }
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:1.5rem; color:red;">Failed to load history.</td></tr>';
+    }
+  }
+
+  function renderHistoryTable() {
+    const tbody = document.getElementById('historyTableBody');
+    if (filteredHistoryData.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:1.5rem; color:var(--muted);">No history found.</td></tr>';
+      document.getElementById('historyPageInfo').textContent = 'Page 1 of 1';
+      return;
+    }
+    tbody.innerHTML = '';
+    
+    const totalPages = Math.ceil(filteredHistoryData.length / historyPerPage);
+    if (historyCurrentPage > totalPages) historyCurrentPage = totalPages;
+    if (historyCurrentPage < 1) historyCurrentPage = 1;
+    
+    document.getElementById('historyPageInfo').textContent = `Page ${historyCurrentPage} of ${totalPages}`;
+    
+    const startIdx = (historyCurrentPage - 1) * historyPerPage;
+    const pageData = filteredHistoryData.slice(startIdx, startIdx + historyPerPage);
+    
+    pageData.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid var(--border)';
+      const d = new Date(row.timestamp);
+      
+      let actionHtml = '';
+      if (row.dataType !== 'Validation Rule' && row.dataType !== 'User Creation') {
+        actionHtml = `<button type="button" class="save-btn" style="padding:4px 8px; font-size:0.75rem; border-radius:6px;" onclick="createValidationForHistoryField('${row.objectName.replace(/'/g, "\\'")}', '${row.fieldName.replace(/'/g, "\\'")}')">Create Val Rule</button>`;
+      } else {
+        actionHtml = `<span style="color:var(--muted); font-size:0.75rem;">—</span>`;
+      }
+
+      tr.innerHTML = `
+        <td style="padding:0.75rem 0.5rem; color:var(--subtle);">${d.toLocaleString()}</td>
+        <td style="padding:0.75rem 0.5rem;">${row.projectName}</td>
+        <td style="padding:0.75rem 0.5rem;">${row.objectName}</td>
+        <td style="padding:0.75rem 0.5rem;">${row.dataType}</td>
+        <td style="padding:0.75rem 0.5rem;">${row.fieldLabel}</td>
+        <td style="padding:0.75rem 0.5rem; font-family:var(--font-mono); font-size:0.75rem; color:var(--mode-accent);">${row.fieldName}</td>
+        <td style="padding:0.75rem 0.5rem;">${actionHtml}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function prevHistoryPage() {
+    if (historyCurrentPage > 1) {
+      historyCurrentPage--;
+      renderHistoryTable();
+    }
+  }
+  function nextHistoryPage() {
+    const totalPages = Math.ceil(filteredHistoryData.length / historyPerPage);
+    if (historyCurrentPage < totalPages) {
+      historyCurrentPage++;
+      renderHistoryTable();
+    }
+  }
+
+  function filterHistory() {
+    const query = document.getElementById('historySearch').value.toLowerCase();
+    if (!query) {
+      filteredHistoryData = [...allHistoryData];
+    } else {
+      filteredHistoryData = allHistoryData.filter(row => {
+        return (
+          (row.projectName && row.projectName.toLowerCase().includes(query)) ||
+          (row.objectName && row.objectName.toLowerCase().includes(query)) ||
+          (row.dataType && row.dataType.toLowerCase().includes(query)) ||
+          (row.fieldLabel && row.fieldLabel.toLowerCase().includes(query)) ||
+          (row.fieldName && row.fieldName.toLowerCase().includes(query))
+        );
+      });
+    }
+    historyCurrentPage = 1;
+    renderHistoryTable();
+  }
+
+  function exportHistory() {
+    if (filteredHistoryData.length === 0) {
+      alert('No history to export.');
+      return;
+    }
+    
+    const csvRows = ['Timestamp,Project,Object,DataType,FieldLabel,FieldName'];
+    filteredHistoryData.forEach(row => {
+      csvRows.push(`"${row.timestamp}","${row.projectName}","${row.objectName}","${row.dataType}","${row.fieldLabel}","${row.fieldName}"`);
+    });
+    const csv = csvRows.join('\n');
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `salesforce_history_${new Date().getTime()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+
+  function createValidationForHistoryField(objectName, fieldName) {
+    // 1. Switch tab to 'validation'
+    switchTab('validation', null);
+    
+    // 2. Pre-fill Object Name and Error Location Field
+    const valObjectName = document.getElementById('valObjectName');
+    if (valObjectName) {
+      valObjectName.value = objectName;
+    }
+    
+    const valErrorField = document.getElementById('valErrorField');
+    if (valErrorField) {
+      valErrorField.value = fieldName;
+    }
+
+    // Pre-fill a template formula and rule name
+    const valRuleName = document.getElementById('valRuleName');
+    if (valRuleName) {
+      const cleanFieldName = fieldName.replace(/__c$/, '');
+      valRuleName.value = `Verify_${cleanFieldName}`;
+    }
+
+    const valFormula = document.getElementById('valFormula');
+    if (valFormula) {
+      valFormula.value = `ISBLANK(${fieldName})`;
+      valFormula.focus();
+    }
+
+    const valErrorMsg = document.getElementById('valErrorMsg');
+    if (valErrorMsg) {
+      const cleanFieldName = fieldName.replace(/__c$/, '').replace(/_/g, ' ');
+      valErrorMsg.value = `${cleanFieldName} is required.`;
+    }
+    
+    document.getElementById('statusText').textContent = `pre-filled validation rule for ${fieldName}`;
+  }
+  // ── OBJECT FIELD LOADER ───────────────────────────
+  let _valFieldData = [];          // cache of fields for current object
+  let _fieldLoadTimer = null;
+
+  function scheduleFieldLoad() {
+    clearTimeout(_fieldLoadTimer);
+    _fieldLoadTimer = setTimeout(loadObjectFields, 600);
+  }
+
+  async function loadObjectFields() {
+    const objectName = document.getElementById('valObjectName').value.trim();
+    const statusEl = document.getElementById('valFieldsStatus');
+    const optionsElTarget = document.getElementById('valTargetFieldOptions');
+    const optionsElError = document.getElementById('valErrorFieldOptions');
+
+    if (!objectName) {
+      _valFieldData = [];
+      if (optionsElTarget) { optionsElTarget.innerHTML = ''; optionsElTarget.classList.remove('open'); }
+      if (optionsElError) { optionsElError.innerHTML = ''; optionsElError.classList.remove('open'); }
+      if (statusEl) statusEl.textContent = '';
+      return;
+    }
+
+    if (statusEl) statusEl.textContent = 'loading…';
+    try {
+      const res = await customFetch(`/api/fields?object=${encodeURIComponent(objectName)}`);
+      if (!res.ok) throw new Error('API error');
+      _valFieldData = await res.json();
+
+      if (statusEl) {
+        statusEl.textContent = _valFieldData.length > 0
+          ? `${_valFieldData.length} field${_valFieldData.length > 1 ? 's' : ''} found`
+          : 'no fields in history';
+      }
+      renderValFieldOptions(_valFieldData, 'valTargetField');
+      renderValFieldOptions(_valFieldData, 'valErrorField');
+    } catch (e) {
+      if (statusEl) statusEl.textContent = 'could not load fields';
+      _valFieldData = [];
+    }
+  }
+
+  function renderValFieldOptions(fields, targetId) {
+    const optionsEl = document.getElementById(targetId + 'Options');
+    if (!optionsEl) return;
+    optionsEl.innerHTML = '';
+    if (fields.length === 0) {
+      const emptyEl = document.createElement('div');
+      emptyEl.className = 'option';
+      emptyEl.style.color = 'var(--muted)';
+      emptyEl.textContent = 'No fields found for this object';
+      optionsEl.appendChild(emptyEl);
+    } else {
+      // Add a "Top of Page" / blank option first
+      const blankOpt = document.createElement('div');
+      blankOpt.className = 'option';
+      blankOpt.style.color = 'var(--muted)';
+      blankOpt.textContent = '— Clear selection (leave blank) —';
+      blankOpt.addEventListener('click', () => {
+        document.getElementById(targetId).value = '';
+        optionsEl.classList.remove('open');
+      });
+      optionsEl.appendChild(blankOpt);
+
+      fields.forEach(f => {
+        const div = document.createElement('div');
+        div.className = 'option';
+        div.innerHTML = `<span style="font-family:var(--font-mono);font-size:0.8rem;color:var(--mode-accent);">${f.fieldName}</span>
+          <span style="font-size:0.72rem;color:var(--muted);margin-left:6px;">${f.fieldLabel} · ${f.dataType}</span>`;
+        div.addEventListener('click', () => {
+          document.getElementById(targetId).value = f.fieldName;
+          optionsEl.classList.remove('open');
+        });
+        optionsEl.appendChild(div);
+      });
+    }
+  }
+
+  function filterValFields(targetId) {
+    const query = document.getElementById(targetId).value.toLowerCase();
+    const optionsEl = document.getElementById(targetId + 'Options');
+
+    // Show dropdown if it has items
+    if (_valFieldData.length > 0 || query) {
+      const filtered = query
+        ? _valFieldData.filter(f =>
+            f.fieldName.toLowerCase().includes(query) ||
+            f.fieldLabel.toLowerCase().includes(query))
+        : _valFieldData;
+      renderValFieldOptions(filtered, targetId);
+      optionsEl.classList.add('open');
+    }
+  }
+
+  function openValFieldDropdown(targetId) {
+    if (_valFieldData.length === 0) {
+      loadObjectFields();
+    } else {
+      const el = document.getElementById(targetId + 'Options');
+      if (el) el.classList.add('open');
+    }
+  }
+
+  // Close the val field dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#valErrorFieldWrap')) {
+      const optElError = document.getElementById('valErrorFieldOptions');
+      if (optElError) optElError.classList.remove('open');
+    }
+    if (!e.target.closest('#valTargetFieldWrap')) {
+      const optElTarget = document.getElementById('valTargetFieldOptions');
+      if (optElTarget) optElTarget.classList.remove('open');
+    }
+  });
+
+  function applyValPreset() {
+    const valTemplate = document.getElementById('valTemplate').value;
+    const formulaTextarea = document.getElementById('valFormula');
+    const msgTextarea = document.getElementById('valErrorMsg');
+    const ruleInput = document.getElementById('valRuleName');
+
+    if (!valTemplate) return;
+
+    let formula = '';
+    let message = '';
+    let ruleName = '';
+    let errorField = document.getElementById('valTargetField').value || document.getElementById('valErrorField').value || 'FieldName__c';
+    const cleanFieldName = errorField.replace(/__c$/, '');
+    const humanName = cleanFieldName.replace(/_/g, ' ');
+
+    switch(valTemplate) {
+      // ── Field Checks ──
+      case 'required':
+        formula = `ISBLANK(${errorField})`;
+        message = `${humanName} is required.`;
+        ruleName = `${cleanFieldName}_Is_Required`;
+        break;
+      case 'null_check':
+        formula = `ISNULL(${errorField})`;
+        message = `${humanName} cannot be null.`;
+        ruleName = `${cleanFieldName}_Not_Null`;
+        break;
+      case 'number_check':
+        formula = `NOT(ISNUMBER(TEXT(${errorField})))`;
+        message = `${humanName} must be a valid number.`;
+        ruleName = `${cleanFieldName}_Must_Be_Number`;
+        break;
+      case 'field_changed':
+        formula = `ISCHANGED(${errorField})`;
+        message = `${humanName} cannot be modified after creation.`;
+        ruleName = `${cleanFieldName}_No_Change`;
+        break;
+
+      // ── Text Validations ──
+      case 'email':
+        formula = `NOT(REGEX(${errorField}, "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\\\.[A-Za-z]{2,}$"))`;
+        message = `Enter a valid email address.`;
+        ruleName = `Validate_Email_${cleanFieldName}`;
+        break;
+      case 'phone':
+        formula = `NOT(REGEX(${errorField}, "^\\\\+?[0-9]{10,15}$"))`;
+        message = `Enter a valid phone number (10-15 digits).`;
+        ruleName = `Validate_Phone_${cleanFieldName}`;
+        break;
+      case 'pan':
+        formula = `NOT(REGEX(${errorField}, "[A-Z]{5}[0-9]{4}[A-Z]"))`;
+        message = `Enter a valid PAN number (e.g. ABCDE1234F).`;
+        ruleName = `Validate_PAN_${cleanFieldName}`;
+        break;
+      case 'min_length':
+        formula = `LEN(${errorField}) < 5`;
+        message = `${humanName} must be at least 5 characters.`;
+        ruleName = `${cleanFieldName}_Min_Length`;
+        break;
+      case 'max_length':
+        formula = `LEN(${errorField}) > 100`;
+        message = `${humanName} cannot exceed 100 characters.`;
+        ruleName = `${cleanFieldName}_Max_Length`;
+        break;
+      case 'no_special':
+        formula = `NOT(REGEX(${errorField}, "^[a-zA-Z0-9 ]*$"))`;
+        message = `${humanName} must not contain special characters.`;
+        ruleName = `${cleanFieldName}_No_Special_Chars`;
+        break;
+      case 'url_format':
+        formula = `NOT(REGEX(${errorField}, "^https?://[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}(/.*)?$"))`;
+        message = `Enter a valid URL starting with http:// or https://.`;
+        ruleName = `Validate_URL_${cleanFieldName}`;
+        break;
+      case 'begins_with':
+        formula = `NOT(BEGINS(${errorField}, "PREFIX"))`;
+        message = `${humanName} must begin with PREFIX.`;
+        ruleName = `${cleanFieldName}_Must_Begin_With`;
+        break;
+      case 'contains_check':
+        formula = `NOT(CONTAINS(${errorField}, "VALUE"))`;
+        message = `${humanName} must contain VALUE.`;
+        ruleName = `${cleanFieldName}_Must_Contain`;
+        break;
+
+      // ── Date Validations ──
+      case 'past_date':
+        formula = `${errorField} < TODAY()`;
+        message = `Date cannot be in the past.`;
+        ruleName = `Prevent_Past_${cleanFieldName}`;
+        break;
+      case 'future_date':
+        formula = `${errorField} > TODAY()`;
+        message = `Future dates are not allowed.`;
+        ruleName = `Prevent_Future_${cleanFieldName}`;
+        break;
+      case 'end_date':
+        formula = `${errorField} < Start_Date__c`;
+        message = `End Date must be after Start Date.`;
+        ruleName = `${cleanFieldName}_After_Start`;
+        break;
+      case 'weekday_only':
+        formula = `CASE(MOD(DATEVALUE(${errorField}) - DATE(1900,1,7), 7), 0, TRUE, 6, TRUE, FALSE)`;
+        message = `${humanName} must be a weekday (Mon–Fri).`;
+        ruleName = `${cleanFieldName}_Weekday_Only`;
+        break;
+      case 'age_check':
+        formula = `(TODAY() - DATEVALUE(${errorField})) / 365.25 < 18`;
+        message = `Person must be at least 18 years old.`;
+        ruleName = `${cleanFieldName}_Min_Age_18`;
+        break;
+
+      // ── Number Validations ──
+      case 'negative':
+        formula = `${errorField} < 0`;
+        message = `${humanName} cannot be negative.`;
+        ruleName = `${cleanFieldName}_No_Negative`;
+        break;
+      case 'range':
+        formula = `OR(${errorField} < 1, ${errorField} > 100)`;
+        message = `${humanName} must be between 1 and 100.`;
+        ruleName = `${cleanFieldName}_Range_Check`;
+        break;
+      case 'multiple_of':
+        formula = `MOD(${errorField}, 10) <> 0`;
+        message = `${humanName} must be a multiple of 10.`;
+        ruleName = `${cleanFieldName}_Multiple_Of_10`;
+        break;
+      case 'max_value':
+        formula = `${errorField} > 999999`;
+        message = `${humanName} cannot exceed 999,999.`;
+        ruleName = `${cleanFieldName}_Max_Value`;
+        break;
+
+      // ── Picklist Validations ──
+      case 'picklist_required':
+        formula = `ISPICKVAL(${errorField}, "")`;
+        message = `Please select a value for ${humanName}.`;
+        ruleName = `${cleanFieldName}_Picklist_Required`;
+        break;
+      case 'picklist_block':
+        formula = `ISPICKVAL(${errorField}, "Blocked Value")`;
+        message = `The value "Blocked Value" is not allowed for ${humanName}.`;
+        ruleName = `${cleanFieldName}_Block_Value`;
+        break;
+
+      // ── Cross-Field / Advanced ──
+      case 'conditional_required':
+        formula = `AND(ISPICKVAL(Status__c, "Active"), ISBLANK(${errorField}))`;
+        message = `${humanName} is required when Status is Active.`;
+        ruleName = `${cleanFieldName}_Conditional_Req`;
+        break;
+      case 'both_or_none':
+        formula = `OR(AND(ISBLANK(${errorField}), NOT(ISBLANK(Related_Field__c))), AND(NOT(ISBLANK(${errorField})), ISBLANK(Related_Field__c)))`;
+        message = `Both ${humanName} and Related Field must be filled, or both must be blank.`;
+        ruleName = `${cleanFieldName}_Both_Or_None`;
+        break;
+      case 'admin_bypass':
+        formula = `AND(${errorField} < 0, $Profile.Name <> "System Administrator")`;
+        message = `Only System Administrators can set negative values for ${humanName}.`;
+        ruleName = `${cleanFieldName}_Admin_Bypass`;
+        break;
+    }
+
+    formulaTextarea.value = formula;
+    msgTextarea.value = message;
+    ruleInput.value = ruleName;
+
+    // Trigger input events to update counters
+    msgTextarea.dispatchEvent(new Event('input'));
+    formulaTextarea.focus();
+  }
+
+  // ── FORMULA FUNCTION REFERENCE DATA ──────────────
+  const FX_DATA = [
+    // Logical
+    {cat:'Logical', fn:'AND()', insert:'AND(, )', hint:'All conditions true'},
+    {cat:'Logical', fn:'OR()', insert:'OR(, )', hint:'Any condition true'},
+    {cat:'Logical', fn:'NOT()', insert:'NOT()', hint:'Reverse TRUE/FALSE'},
+    {cat:'Logical', fn:'IF()', insert:'IF(condition, true_val, false_val)', hint:'Conditional logic'},
+    {cat:'Logical', fn:'CASE()', insert:'CASE(field, val1, result1, val2, result2, default)', hint:'Multi-condition'},
+
+    // Text
+    {cat:'Text', fn:'LEN()', insert:'LEN(field)', hint:'Text length'},
+    {cat:'Text', fn:'LEFT()', insert:'LEFT(field, num)', hint:'Left characters'},
+    {cat:'Text', fn:'RIGHT()', insert:'RIGHT(field, num)', hint:'Right characters'},
+    {cat:'Text', fn:'MID()', insert:'MID(field, start, length)', hint:'Middle characters'},
+    {cat:'Text', fn:'FIND()', insert:'FIND(search, field)', hint:'Find position'},
+    {cat:'Text', fn:'SUBSTITUTE()', insert:'SUBSTITUTE(field, old, new)', hint:'Replace text'},
+    {cat:'Text', fn:'TEXT()', insert:'TEXT(field)', hint:'Convert to text'},
+    {cat:'Text', fn:'TRIM()', insert:'TRIM(field)', hint:'Remove spaces'},
+    {cat:'Text', fn:'LOWER()', insert:'LOWER(field)', hint:'To lowercase'},
+    {cat:'Text', fn:'UPPER()', insert:'UPPER(field)', hint:'To uppercase'},
+    {cat:'Text', fn:'CONTAINS()', insert:'CONTAINS(field, "value")', hint:'Contains value'},
+    {cat:'Text', fn:'BEGINS()', insert:'BEGINS(field, "value")', hint:'Starts with'},
+    {cat:'Text', fn:'LPAD()', insert:'LPAD(field, length, "pad")', hint:'Pad left'},
+    {cat:'Text', fn:'RPAD()', insert:'RPAD(field, length, "pad")', hint:'Pad right'},
+    {cat:'Text', fn:'BR()', insert:'BR()', hint:'Line break'},
+
+    // Date & Time
+    {cat:'Date/Time', fn:'TODAY()', insert:'TODAY()', hint:'Current date'},
+    {cat:'Date/Time', fn:'NOW()', insert:'NOW()', hint:'Current date+time'},
+    {cat:'Date/Time', fn:'DATE()', insert:'DATE(year, month, day)', hint:'Create date'},
+    {cat:'Date/Time', fn:'DATEVALUE()', insert:'DATEVALUE(field)', hint:'To date'},
+    {cat:'Date/Time', fn:'DATETIMEVALUE()', insert:'DATETIMEVALUE(field)', hint:'To datetime'},
+    {cat:'Date/Time', fn:'YEAR()', insert:'YEAR(field)', hint:'Get year'},
+    {cat:'Date/Time', fn:'MONTH()', insert:'MONTH(field)', hint:'Get month'},
+    {cat:'Date/Time', fn:'DAY()', insert:'DAY(field)', hint:'Get day'},
+    {cat:'Date/Time', fn:'HOUR()', insert:'HOUR(field)', hint:'Get hour'},
+    {cat:'Date/Time', fn:'MINUTE()', insert:'MINUTE(field)', hint:'Get minute'},
+    {cat:'Date/Time', fn:'SECOND()', insert:'SECOND(field)', hint:'Get second'},
+    {cat:'Date/Time', fn:'WEEKDAY()', insert:'WEEKDAY(field)', hint:'Weekday number'},
+    {cat:'Date/Time', fn:'ADDMONTHS()', insert:'ADDMONTHS(field, num)', hint:'Add months'},
+
+    // Math
+    {cat:'Math', fn:'ABS()', insert:'ABS(field)', hint:'Absolute value'},
+    {cat:'Math', fn:'CEILING()', insert:'CEILING(field)', hint:'Round up'},
+    {cat:'Math', fn:'FLOOR()', insert:'FLOOR(field)', hint:'Round down'},
+    {cat:'Math', fn:'ROUND()', insert:'ROUND(field, decimals)', hint:'Round number'},
+    {cat:'Math', fn:'SQRT()', insert:'SQRT(field)', hint:'Square root'},
+    {cat:'Math', fn:'MOD()', insert:'MOD(field, divisor)', hint:'Remainder'},
+    {cat:'Math', fn:'MIN()', insert:'MIN(a, b)', hint:'Minimum'},
+    {cat:'Math', fn:'MAX()', insert:'MAX(a, b)', hint:'Maximum'},
+    {cat:'Math', fn:'EXP()', insert:'EXP(field)', hint:'Exponential'},
+    {cat:'Math', fn:'LOG()', insert:'LOG(field)', hint:'Logarithm'},
+    {cat:'Math', fn:'VALUE()', insert:'VALUE(field)', hint:'Text to number'},
+
+    // Picklist
+    {cat:'Picklist', fn:'ISPICKVAL()', insert:'ISPICKVAL(field, "value")', hint:'Check picklist'},
+    {cat:'Picklist', fn:'TEXT(picklist)', insert:'TEXT(picklist_field)', hint:'Picklist to text'},
+
+    // Validation
+    {cat:'Validation', fn:'ISBLANK()', insert:'ISBLANK(field)', hint:'Check empty'},
+    {cat:'Validation', fn:'ISNULL()', insert:'ISNULL(field)', hint:'Check null'},
+    {cat:'Validation', fn:'ISNUMBER()', insert:'ISNUMBER(field)', hint:'Check numeric'},
+    {cat:'Validation', fn:'ISCHANGED()', insert:'ISCHANGED(field)', hint:'Field changed'},
+    {cat:'Validation', fn:'PRIORVALUE()', insert:'PRIORVALUE(field)', hint:'Previous value'},
+    {cat:'Validation', fn:'REGEX()', insert:'REGEX(field, "pattern")', hint:'Pattern match'},
+    {cat:'Validation', fn:'VLOOKUP()', insert:'VLOOKUP($ObjectType.Obj.Fields.Field, $ObjectType.Obj.Fields.Key, key_value)', hint:'Lookup validation'},
+
+    // User & Profile
+    {cat:'User/Profile', fn:'$User.Id', insert:'$User.Id', hint:'Current user ID'},
+    {cat:'User/Profile', fn:'$User.Username', insert:'$User.Username', hint:'Current username'},
+    {cat:'User/Profile', fn:'$Profile.Name', insert:'$Profile.Name', hint:'Profile name'},
+    {cat:'User/Profile', fn:'$UserRole.Name', insert:'$UserRole.Name', hint:'Role name'},
+    {cat:'User/Profile', fn:'$Permission', insert:'$Permission.Custom_Permission', hint:'Custom permission'},
+    {cat:'User/Profile', fn:'$Organization.Id', insert:'$Organization.Id', hint:'Org ID'},
+
+    // Advanced
+    {cat:'Advanced', fn:'CASESAFEID()', insert:'CASESAFEID(field)', hint:'18-digit ID'},
+    {cat:'Advanced', fn:'HTMLENCODE()', insert:'HTMLENCODE(field)', hint:'Encode HTML'},
+    {cat:'Advanced', fn:'URLENCODE()', insert:'URLENCODE(field)', hint:'URL encode'},
+    {cat:'Advanced', fn:'JSENCODE()', insert:'JSENCODE(field)', hint:'JS encode'},
+    {cat:'Advanced', fn:'HYPERLINK()', insert:'HYPERLINK(url, label)', hint:'Create link'},
+    {cat:'Advanced', fn:'IMAGE()', insert:'IMAGE(url, alt)', hint:'Display image'},
+    {cat:'Advanced', fn:'DISTANCE()', insert:'DISTANCE(loc1, loc2, "mi")', hint:'Geo distance'},
+    {cat:'Advanced', fn:'GEOLOCATION()', insert:'GEOLOCATION(lat, lon)', hint:'Create coords'},
+  ];
+
+  let _fxActiveCat = 'All';
+
+  function buildFxPanel() {
+    const cats = ['All', ...new Set(FX_DATA.map(f => f.cat))];
+    const catsEl = document.getElementById('fxCats');
+    catsEl.innerHTML = '';
+    cats.forEach(cat => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'fx-cat-btn' + (cat === 'All' ? ' active' : '');
+      btn.textContent = cat;
+      btn.addEventListener('click', () => {
+        _fxActiveCat = cat;
+        catsEl.querySelectorAll('.fx-cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('fxSearch').value = '';
+        renderFxGrid(FX_DATA.filter(f => cat === 'All' || f.cat === cat));
+      });
+      catsEl.appendChild(btn);
+    });
+    renderFxGrid(FX_DATA);
+  }
+
+  function renderFxGrid(data) {
+    const grid = document.getElementById('fxGrid');
+    grid.innerHTML = '';
+    if (data.length === 0) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:1rem;font-size:0.8rem;">No matching functions</div>';
+      return;
+    }
+    data.forEach(f => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'fx-fn';
+      btn.innerHTML = `${f.fn}<span class="fx-hint">${f.hint}</span>`;
+      btn.title = `Insert: ${f.insert}`;
+      btn.addEventListener('click', () => insertFxFunction(f.insert));
+      grid.appendChild(btn);
+    });
+  }
+
+  function filterFxFunctions() {
+    const q = document.getElementById('fxSearch').value.toLowerCase();
+    let filtered = FX_DATA;
+    if (_fxActiveCat !== 'All') filtered = filtered.filter(f => f.cat === _fxActiveCat);
+    if (q) filtered = filtered.filter(f => f.fn.toLowerCase().includes(q) || f.hint.toLowerCase().includes(q) || f.cat.toLowerCase().includes(q));
+    renderFxGrid(filtered);
+  }
+
+  function insertFxFunction(text) {
+    const textarea = document.getElementById('valFormula');
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const before = textarea.value.substring(0, start);
+    const after = textarea.value.substring(end);
+    textarea.value = before + text + after;
+    textarea.focus();
+    // Place cursor inside the parentheses
+    const parenPos = text.indexOf('(');
+    if (parenPos > -1 && text.indexOf(')') > parenPos) {
+      textarea.selectionStart = textarea.selectionEnd = start + parenPos + 1;
+    } else {
+      textarea.selectionStart = textarea.selectionEnd = start + text.length;
+    }
+  }
+
+  buildFxPanel();
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const valErrorMsg = document.getElementById('valErrorMsg');
+    const valErrorMsgCounter = document.getElementById('valErrorMsgCounter');
+    if (valErrorMsg && valErrorMsgCounter) {
+      const updateCounter = () => {
+        valErrorMsgCounter.textContent = `${valErrorMsg.value.length} / 255`;
+      };
+      valErrorMsg.addEventListener('input', updateCounter);
+      updateCounter();
+    }
+
+    const inputs = document.querySelectorAll('input, textarea, select');
+    inputs.forEach(input => {
+      input.addEventListener('blur', () => {
+        input.classList.add('touched');
+      });
+      input.addEventListener('input', () => {
+        if (input.checkValidity()) {
+          input.classList.remove('touched');
+        }
+      });
+    });
+  });
+
+  switchTab('single', null);
+
+  // ── DYNAMIC FIELDS & SEARCHABLE SELECT ─────────
+  const dataTypeSearch = document.getElementById('dataTypeSearch');
+  const selectOptions = document.getElementById('selectOptions');
+  const dataTypeHidden = document.getElementById('dataType');
+
+  if (dataTypeSearch) {
+    dataTypeSearch.addEventListener('focus', () => {
+      selectOptions.classList.add('open');
+    });
+
+    dataTypeSearch.addEventListener('input', (e) => {
+      selectOptions.classList.add('open');
+      const filter = e.target.value.toLowerCase();
+      document.querySelectorAll('#selectOptions .option').forEach(opt => {
+        const text = opt.textContent.toLowerCase();
+        if (text.includes(filter)) {
+          opt.classList.remove('hidden');
+        } else {
+          opt.classList.add('hidden');
+        }
+      });
+    });
+
+    document.querySelectorAll('#selectOptions .option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        const val = opt.getAttribute('data-value');
+        dataTypeSearch.value = val;
+        dataTypeHidden.value = val;
+        selectOptions.classList.remove('open');
+        dataTypeHidden.dispatchEvent(new Event('change'));
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#customSelect')) {
+        selectOptions.classList.remove('open');
+        if (dataTypeSearch.value !== dataTypeHidden.value) {
+          dataTypeSearch.value = dataTypeHidden.value;
+        }
+      }
+    });
+  }
+
+  dataTypeHidden.addEventListener('change', (e) => {
+    document.querySelectorAll('.dynamic-fields').forEach(f => {
+      f.classList.remove('active');
+      f.querySelectorAll('input,textarea').forEach(i => i.removeAttribute('required'));
+    });
+    const target = document.getElementById(`fields-${e.target.value}`);
+    if (target) {
+      target.classList.add('active');
+      target.querySelectorAll('input,textarea').forEach(i => i.setAttribute('required','true'));
+    }
+  });
+
+  // Auto API Name
+  document.querySelectorAll('input[name$="-FieldLabel"]').forEach(input => {
+    input.addEventListener('input', (e) => {
+      const prefix = e.target.name.split('-')[0];
+      const apiInput = document.querySelector(`input[name="${prefix}-FieldName"]`);
+      if (apiInput) apiInput.value = e.target.value.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
+    });
+  });
+
+  // ── LOAD SAVED CREDS ─────────────────────────────
+  // (Credentials are now loaded securely via checkSession)
+
+  // ── CSV PARSER ───────────────────────────────────
+  async function parseCSV(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const rows = e.target.result.split('\n').filter(r => r.trim());
+        if (!rows.length) return resolve([]);
+        const headers = rows[0].split(',').map(h => h.trim());
+        const data = [];
+        for (let i = 1; i < rows.length; i++) {
+          const cols = rows[i].split(',');
+          const row = {};
+          headers.forEach((h, idx) => row[h] = cols[idx] ? cols[idx].trim() : '');
+          data.push(row);
+        }
+        resolve(data);
+      };
+      reader.onerror = reject;
+      reader.readAsText(file);
+    });
+  }
+
+  function downloadTemplate(type) {
+    let csvRows;
+    if (type === 'field') {
+      csvRows = [
+        'ObjectName,DataType,FieldLabel,FieldName,Length,DecimalPlaces,PicklistValues',
+        'Account,Text,External ID,External_ID__c,255,,',
+        'Contact,Number,Age,Age__c,3,0,',
+        'Opportunity,Picklist,Stage,Stage__c,,,Active;Inactive;Pending'
+      ];
+    } else if (type === 'validation') {
+      csvRows = [
+        'ObjectName,RuleName,Formula,ErrorMessage,ErrorField',
+        'Account,Prevent_Invalid_Age,Age__c < 18,Age must be 18 or older.,Age__c',
+        'Opportunity,Prevent_Stage_Change,ISPICKVAL(StageName, "Closed Won") && Amount < 100,Closed Won opportunities must have an amount >= 100.,'
+      ];
+    } else if (type === 'user') {
+      csvRows = [
+        'FirstName,LastName,Email,Username,GeneratePassword,Role,License,Profile',
+        'John,Doe,john@example.com,john@example.com,true,CEO,Salesforce,System Administrator',
+        'Jane,Smith,jane@example.com,jane@example.com.uat,false,,,Standard User'
+      ];
+    } else if (type === 'user_update') {
+      csvRows = [
+        'Username,IsActive',
+        'john@example.com,true',
+        'jane@example.com.uat,false'
+      ];
+    }
+    const csv = csvRows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = type === 'field' ? 'field_import_template.csv' : (type === 'validation' ? 'validation_import_template.csv' : (type === 'user_update' ? 'user_status_update_template.csv' : 'user_import_template.csv'));
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+
+  // ── FORM SUBMIT ──────────────────────────────────
+  document.getElementById('salesforceForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const form = document.getElementById('salesforceForm');
+    if (!form.checkValidity()) {
+      form.querySelectorAll('input, textarea, select').forEach(i => i.classList.add('touched'));
+      document.getElementById('statusText').textContent = 'please correct errors before running automation';
+      return;
+    }
+
+    // We no longer save to localStorage, settings are saved via API in saveSettings()
+
+    const submitBtn = document.querySelector('.submit-btn');
+    const origBtnHtml = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span class="spinner" style="margin-right: 8px;"></span> Running Automation...`;
+
+    const payload = {
+      taskType: currentMode === 'single' ? 'field' : (currentMode === 'validation' ? 'validation_rule' : (currentMode === 'user' ? (document.getElementById('userActionSelect').value === 'update' ? 'update_user_status' : 'user') : 'field')),
+      mode: currentMode,
+      envMode: currentEnvMode,
+      project_name: document.getElementById('projectSelector') ? document.getElementById('projectSelector').value : 'Default',
+      credentials: {
+        url:      document.getElementById('url').value,
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value,
+      },
+      data: null
+    };
+
+    if (currentMode === 'single') {
+      const dt = document.getElementById('dataType').value;
+      const singleData = { objectName: document.getElementById('objectName').value, dataType: dt, fieldDetails: {} };
+      const activeSection = document.getElementById(`fields-${dt}`);
+      if (activeSection) {
+        activeSection.querySelectorAll('input,textarea').forEach(i => {
+          singleData.fieldDetails[i.name.split('-')[1]] = i.value;
+        });
+      }
+      payload.data = [singleData];
+    } else if (currentMode === 'validation') {
+      const singleData = {
+        objectName: document.getElementById('valObjectName').value,
+        ruleName: document.getElementById('valRuleName').value,
+        formula: document.getElementById('valFormula').value,
+        errorMessage: document.getElementById('valErrorMsg').value,
+        errorField: document.getElementById('valErrorField').value
+      };
+      payload.data = [singleData];
+    } else if (currentMode === 'user') {
+      const userAction = document.getElementById('userActionSelect').value;
+      if (userAction === 'create') {
+          payload.taskType = 'user';
+          payload.data = [{
+            FirstName: document.getElementById('userFirstName').value,
+            LastName: document.getElementById('userLastName').value,
+            Email: document.getElementById('userEmail').value,
+            Username: document.getElementById('userUsername').value,
+            GeneratePassword: document.getElementById('userGenPassword').checked,
+            Role: document.getElementById('userRole').value,
+            License: document.getElementById('userLicense').value,
+            Profile: document.getElementById('userProfile').value
+          }];
+      } else {
+          payload.taskType = 'update_user_status';
+          payload.data = [{
+            Username: document.getElementById('updateUserUsername').value,
+            IsActive: document.getElementById('updateUserActive').checked
+          }];
+      }
+    } else {
+      const fileInput = document.getElementById('csvFile');
+      if (!fileInput.files.length) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = origBtnHtml;
+        return;
+      }
+      try {
+        const parsedData = await parseCSV(fileInput.files[0]);
+        payload.data = parsedData;
+        if (parsedData.length > 0) {
+          const firstRow = parsedData[0];
+          if ('RuleName' in firstRow || 'ruleName' in firstRow || 'Formula' in firstRow || 'formula' in firstRow) {
+            payload.taskType = 'validation_rule';
+          } else if ('LastName' in firstRow || 'lastName' in firstRow || 'Email' in firstRow || 'email' in firstRow || 'Username' in firstRow) {
+            if ('IsActive' in firstRow || 'isActive' in firstRow) {
+                payload.taskType = 'update_user_status';
+            } else {
+                payload.taskType = 'user';
+            }
+          } else {
+            payload.taskType = 'field';
+          }
+        }
+      } catch(err) {
+        document.getElementById('statusText').textContent = 'csv parse error';
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = origBtnHtml;
+        return;
+      }
+    }
+
+    // Validation
+    if (payload.data && payload.data.length > 0 && payload.taskType === 'field') {
+      const seenFields = new Set();
+      const validTypes = ['Text', 'Number', 'Currency', 'Date', 'Date/Time', 'Phone', 'Picklist'];
+
+      for (let i = 0; i < payload.data.length; i++) {
+        const item = payload.data[i];
+        const objectName = item.objectName || item.ObjectName;
+        const dataType = item.dataType || item.DataType;
+        const details = item.fieldDetails || item;
+        
+        if (!objectName) { alert(`Validation Error (Row ${i+1}): Object Name is required.`); submitBtn.disabled = false; submitBtn.innerHTML = origBtnHtml; return; }
+        if (!dataType) { alert(`Validation Error (Row ${i+1}): Data Type is required.`); submitBtn.disabled = false; submitBtn.innerHTML = origBtnHtml; return; }
+        if (!validTypes.includes(dataType)) { alert(`Validation Error (Row ${i+1}): Invalid Data Type '${dataType}'. Allowed values: ${validTypes.join(', ')}.`); submitBtn.disabled = false; submitBtn.innerHTML = origBtnHtml; return; }
+        if (!details.FieldLabel) { alert(`Validation Error (Row ${i+1}): Field Label is required.`); submitBtn.disabled = false; submitBtn.innerHTML = origBtnHtml; return; }
+        
+        // Check API Name format if provided
+        const fieldName = details.FieldName;
+        if (fieldName) {
+          if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(fieldName)) {
+            alert(`Validation Error (Row ${i+1}): API Name '${fieldName}' is invalid. Must start with a letter and contain only alphanumeric characters and underscores.`);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origBtnHtml;
+            return;
+          }
+        }
+        
+        // Prevent duplicates in the same run
+        const uniqueKey = `${objectName.toLowerCase()}.${details.FieldLabel.toLowerCase()}`;
+        if (seenFields.has(uniqueKey)) {
+          alert(`Validation Error (Row ${i+1}): Duplicate field label '${details.FieldLabel}' on object '${objectName}' detected in your payload.`);
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = origBtnHtml;
+          return;
+        }
+        seenFields.add(uniqueKey);
+        
+        if (dataType === 'Number' || dataType === 'Currency') {
+          const len = parseInt(details.Length) || 18;
+          const dec = parseInt(details.DecimalPlaces) || 0;
+          if (len + dec > 18) {
+            alert(`Validation Error (Row ${i+1}): Length + Decimal Places cannot exceed 18 for Number/Currency fields. (Currently ${len} + ${dec} = ${len + dec})`);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origBtnHtml;
+            return;
+          }
+        }
+        
+        if (dataType === 'Text') {
+          const len = parseInt(details.Length) || 255;
+          if (len > 255) {
+            alert(`Validation Error (Row ${i+1}): Length cannot exceed 255 for Text fields.`);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origBtnHtml;
+            return;
+          }
+        }
+        
+        if (dataType === 'Picklist') {
+          const values = details.PicklistValues || details.Values;
+          if (!values || !values.trim()) {
+            alert(`Validation Error (Row ${i+1}): Picklist fields must have Picklist Values specified.`);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origBtnHtml;
+            return;
+          }
+        }
+      }
+    }
+
+    document.getElementById('statusText').textContent = 'sending to backend…';
+    try {
+      await customFetch('/api/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      document.getElementById('statusText').textContent = 'automation running — check terminal';
+    } catch(err) {
+      document.getElementById('statusText').textContent = 'backend unreachable — start salesforce_playwright.py';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = origBtnHtml;
+    }
+  });
+</script>
+</body>
+</html>

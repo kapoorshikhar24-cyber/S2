@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project MOM Management Platform</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation Header -->
+  <header id="app-header">
+    <div class="logo-container" onclick="router.navigateTo('hero')">
+      <div class="logo-icon">M</div>
+      <span>MOM Generator & Tracker</span>
+    </div>
+    
+    <nav id="main-nav">
+      <button data-target="create" class="nav-btn">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
+        Create MOM
+      </button>
+      <button data-target="ai-generator" class="nav-btn">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9.813 15.904L9 21L8.188 15.904L3 15L8.188 14.096L9 9L9.813 14.096L15 15L9.813 15.904zM19.071 4.929l-.571 3.571l-3.571.571l3.571.571l.571 3.571l.571-3.571l3.571-.571l-3.571-.571l-.571-3.571z"></path></svg>
+        AI Extractor
+      </button>
+      <button data-target="tracker" class="nav-btn">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+        Action Items
+      </button>
+    </nav>
+    
+    <div class="profile-container">
+      <button id="auth-state-btn" class="profile-btn" onclick="router.navigateTo('login')">
+        <div class="avatar">U</div>
+        <span id="profile-btn-username">Sign In</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main>
+    
+    <!-- View 0: Hero / Landing -->
+    <section id="hero-view" class="view-section active hero-view">
+      <span class="hero-tag">Intelligent Meeting Workflows</span>
+      <h1 class="hero-title">Create Professional Minutes of Meeting in Seconds</h1>
+      <p class="hero-desc">
+        Upload meeting notes, transcripts, or fill a structured form to generate corporate MOMs with action items, owners, deadlines, and project tracking.
+      </p>
+      <div class="hero-buttons">
+        <button class="btn btn-primary" onclick="router.navigateTo('create')">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
+          Create MOM
+        </button>
+        <button class="btn btn-secondary" onclick="router.navigateTo('ai-generator')">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+          Upload Transcript
+        </button>
+        <button class="btn btn-secondary" onclick="demoController.loadDemoMOM()">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+          View Demo
+        </button>
+      </div>
+    </section>
+
+    <!-- View 1: Login -->
+    <section id="login-view" class="view-section">
+      <div class="login-card">
+        <div class="login-header">
+          <div class="logo-icon">M</div>
+          <h2>Welcome back</h2>
+          <p class="subtitle">Access your MOM workspace</p>
+        </div>
+        <form id="login-form" onsubmit="authController.handleLogin(event)">
+          <div class="form-group">
+            <label for="login-username">Username or Email</label>
+            <input type="text" id="login-username" class="form-input" placeholder="e.g. Shikhar Kapoor" required value="Shikhar Kapoor">
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" class="form-input" placeholder="••••••••" required value="password123">
+          </div>
+          <button type="submit" class="btn btn-primary login-submit">Sign In</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- View 3: Create MOM Page -->
+    <section id="create-view" class="view-section">
+      <h1>Create Minutes of Meeting</h1>
+      <p class="subtitle">Complete the meeting document step by step or use the AI uploader to pre-fill the values.</p>
+      
+      <form id="mom-form" onsubmit="momController.handleFormSubmit(event)">
+        <div class="form-step-container">
+          
+          <!-- Section 1: Meeting Information -->
+          <div class="form-section-card">
+            <div class="form-section-title">
+              <div class="section-num">1</div>
+              <span>Meeting Information</span>
+            </div>
+            
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="field-title">Meeting Title</label>
+                <input type="text" id="field-title" class="form-input" placeholder="e.g. AIPL Project Module Discussion" required>
+              </div>
+              <div class="form-group">
+                <label for="field-project">Project Name</label>
+                <div class="project-picklist-wrapper">
+                  <input type="text" id="field-project" class="form-input" placeholder="e.g. AIPL ERP" required autocomplete="off">
+                  <div class="project-picklist-dropdown" id="project-picklist-dropdown"></div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="grid-3" style="margin-top:1rem;">
+              <div class="form-group">
+                <label for="field-date">Date</label>
+                <input type="date" id="field-date" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label for="field-start-time">Start Time</label>
+                <input type="time" id="field-start-time" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label for="field-end-time">End Time</label>
+                <input type="time" id="field-end-time" class="form-input" required>
+              </div>
+            </div>
+            
+            <div class="grid-2" style="margin-top:1rem;">
+              <div class="form-group">
+                <label for="field-type">Meeting Type</label>
+                <select id="field-type" class="form-select" style="padding: 0.75rem 1rem;">
+                  <option value="Project Discussion">Project Discussion</option>
+                  <option value="Client Workshop">Client Workshop</option>
+                  <option value="Requirements Gathering">Requirements Gathering</option>
+                  <option value="Review Meeting">Review Meeting</option>
+                  <option value="Sprints Planning">Sprint Planning</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="field-organizer">Organizer</label>
+                <input type="text" id="field-organizer" class="form-input" placeholder="e.g. Cloud Conics" required>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Section 2: Attendees -->
+          <div class="form-section-card">
+            <div class="form-section-title">
+              <div class="section-num">2</div>
+              <span>Attendees by Organization</span>
+            </div>
+            
+            <p class="subtitle" style="margin-bottom: 1.25rem;">Map participants to organizations for structured representation.</p>
+            
+            <div id="attendees-wrapper">
+              <!-- Dynamic Org sections are generated here -->
+            </div>
+            
+            <button type="button" class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="momController.addNewOrganization()">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
+              Add Organization
+            </button>
+          </div>
+          
+          <!-- Section 3: Discussion Points -->
+          <div class="form-section-card">
+            <div class="form-section-title">
+              <div class="section-num">3</div>
+              <span>Discussion Points</span>
+            </div>
+            
+            <p class="subtitle" style="margin-bottom: 1.25rem;">Log the key discussion topics and the points discussed inside card interfaces.</p>
+            
+            <div class="discussion-cards-grid" id="discussion-wrapper">
+              <!-- Dynamic discussion point cards are added here -->
+            </div>
+            
+            <button type="button" class="btn btn-secondary" onclick="momController.addNewDiscussionCard()">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
+              Add Discussion Point
+            </button>
+          </div>
+          
+          <!-- Section 4: Action Items -->
+          <div class="form-section-card">
+            <div class="form-section-title">
+              <div class="section-num">4</div>
+              <span>Action Items</span>
+            </div>
+            
+            <p class="subtitle" style="margin-bottom: 1.25rem;">Assign responsibilities, set priority, and due dates for actionable points.</p>
+            
+            <div class="table-responsive">
+              <table class="action-items-table">
+                <thead>
+                  <tr>
+                    <th style="width: 35%;">Action Item Description</th>
+                    <th style="width: 20%;">Owner</th>
+                    <th style="width: 15%;">Priority</th>
+                    <th style="width: 15%;">Due Date</th>
+                    <th style="width: 10%;">Status</th>
+                    <th style="width: 5%;"></th>
+                  </tr>
+                </thead>
+                <tbody id="action-items-tbody">
+                  <!-- Dynamic action item rows go here -->
+                </tbody>
+              </table>
+            </div>
+            
+            <button type="button" class="btn btn-secondary" onclick="momController.addNewActionItemRow()">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
+              Add Action Item
+            </button>
+          </div>
+          
+          <!-- Section 5: Scope Notes -->
+          <div class="form-section-card">
+            <div class="form-section-title">
+              <div class="section-num">5</div>
+              <span>Scope Notes & Contract Remarks</span>
+            </div>
+            <p class="subtitle" style="margin-bottom: 1.25rem;">Specify notes regarding initial scope, potential changes, and estimation procedures.</p>
+            <div class="form-group">
+              <label for="field-scope-notes">Scope Notes</label>
+              <textarea id="field-scope-notes" class="form-input" rows="4" placeholder="e.g. Scope boundaries or remarks..." style="resize: vertical;"></textarea>
+            </div>
+          </div>
+          
+        </div>
+        
+        <!-- Form Actions Footer -->
+        <div class="form-actions-bar">
+          <button type="button" class="btn btn-secondary" onclick="router.navigateTo('hero')">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg>
+            Save & Generate MOM
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- View 4: AI MOM Generator -->
+    <section id="ai-generator-view" class="view-section">
+      <div class="ai-generator-panel">
+        <h1>AI MOM Generator</h1>
+        <p class="subtitle">Extract layout information, summaries, and action tasks directly from files or text transcripts.</p>
+        
+        <!-- Dropzone -->
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('ai-file-input').click()">
+          <input type="file" id="ai-file-input" style="display:none;" accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.txt,.vtt,.md" onchange="aiController.handleFileSelection(event)">
+          <div class="upload-icon" id="upload-zone-icon">🎵</div>
+          <h3 id="upload-zone-title">Upload Audio / Meeting File</h3>
+          <p id="upload-zone-desc">Supports <strong>Audio (.mp3, .wav, .m4a)</strong>, <strong>Transcript (.txt, .vtt)</strong>, or <strong>Notes (.txt, .md)</strong></p>
+          <span style="font-size:0.75rem; color:var(--text-dim); margin-top: 1rem; text-decoration: underline;">Click to browse or drag & drop</span>
+        </div>
+
+        <!-- Audio File Preview Card (shown after audio upload) -->
+        <div id="audio-preview-card" class="audio-preview-card" style="display:none;">
+          <div class="audio-preview-header">
+            <div class="audio-file-info">
+              <div class="audio-file-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18V5l12-2v13"/>
+                  <circle cx="6" cy="18" r="3"/>
+                  <circle cx="18" cy="16" r="3"/>
+                </svg>
+              </div>
+              <div>
+                <div id="audio-file-name" class="audio-file-name">audio_file.mp3</div>
+                <div id="audio-file-meta" class="audio-file-meta">Loading...</div>
+              </div>
+            </div>
+            <button class="audio-remove-btn" onclick="aiController.clearAudioFile()" title="Remove file">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <!-- Waveform bars -->
+          <div class="audio-waveform" id="audio-waveform">
+            <div class="waveform-bars" id="waveform-bars"></div>
+          </div>
+
+          <!-- Native Audio Player -->
+          <audio id="audio-player" controls style="width:100%; margin: 0.75rem 0; border-radius:8px; accent-color: var(--accent);"></audio>
+
+          <!-- Transcribe Button -->
+          <div class="audio-transcribe-row">
+            <button id="transcribe-audio-btn" class="btn audio-transcribe-btn" onclick="aiController.transcribeAudioFile()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
+              Transcribe Audio to Text
+            </button>
+            <div class="audio-transcribe-hint">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Audio plays & is transcribed live into the text box below
+            </div>
+          </div>
+
+          <!-- Transcription Progress (shown during transcription) -->
+          <div id="audio-transcription-progress" class="audio-transcription-progress" style="display:none;">
+            <div class="atp-header">
+              <div class="atp-spinner"></div>
+              <div>
+                <div id="atp-status" class="atp-status">Initializing transcription engine...</div>
+                <div id="atp-sub" class="atp-sub">Analyzing audio file</div>
+              </div>
+              <div id="atp-percent" class="atp-percent">0%</div>
+            </div>
+            <div class="atp-bar-track"><div id="atp-bar" class="atp-bar" style="width:0%"></div></div>
+          </div>
+        </div>
+        
+        <!-- Live Dictate Section -->
+        <div class="stt-dictate-section" id="stt-dictate-section">
+          <div class="stt-dictate-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+            <span>Or Dictate Meeting Notes Live</span>
+          </div>
+          <p class="stt-dictate-desc">Speak in English or Hindi — your voice is transcribed in real-time. Enable <strong>Hindi → English</strong> mode to automatically translate spoken Hindi into English text.</p>
+
+          <!-- Language Toggle -->
+          <div class="stt-lang-bar">
+            <span class="stt-lang-label">Dictation Language:</span>
+            <div class="stt-lang-toggles">
+              <button class="stt-lang-toggle active" data-lang="en" onclick="speechController.setLanguage('en')">
+                🇬🇧 English (IN)
+              </button>
+              <button class="stt-lang-toggle" data-lang="hi-to-en" onclick="speechController.setLanguage('hi-to-en')">
+                🇮🇳 Hindi → 🇬🇧 English
+              </button>
+            </div>
+          </div>
+
+          <div class="stt-dictate-controls">
+            <button id="stt-main-mic-btn" class="btn stt-main-mic-btn" onclick="speechController.startRecording(document.getElementById('ai-transcript-text'), 'textarea', this)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
+              Start Dictating
+            </button>
+            <span class="stt-dictate-hint">Continuous mode • Auto-append • Select language above</span>
+          </div>
+        </div>
+
+        <!-- Transcript Text area fallback -->
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label for="ai-transcript-text">Or Paste Meeting Transcript / Raw Notes below</label>
+          <textarea id="ai-transcript-text" class="form-input" rows="8" placeholder="Paste transcript here... or use the Dictate button above to speak." style="font-family: monospace; font-size: 0.85rem; resize: vertical;"></textarea>
+        </div>
+        
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+          <button class="btn btn-secondary" onclick="aiController.loadDemoTranscript()">Load Sample ERP Transcript</button>
+          <button class="btn btn-primary" onclick="aiController.startAIProcessing()">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9.813 15.904L9 21L8.188 15.904L3 15L8.188 14.096L9 9L9.813 14.096L15 15L9.813 15.904z"></path></svg>
+            Extract with AI
+          </button>
+        </div>
+        
+        <!-- Animated Processing Pipeline -->
+        <div class="ai-processing-container" id="ai-processing-block">
+          <div class="spinner"></div>
+          <div>
+            <h3 id="processing-status-title">Processing meeting document...</h3>
+            <p class="subtitle" style="margin-bottom: 0.5rem;" id="processing-status-sub">Initializing OCR & Voice parsing engines...</p>
+          </div>
+          <div class="extraction-logs" id="processing-logs">
+            <!-- Dynamic logs entries go here -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- View 5: MOM Preview -->
+    <section id="mom-preview-view" class="view-section">
+      <div class="preview-actions-header">
+        <div>
+          <button class="btn btn-secondary" onclick="router.navigateTo('hero')" style="padding: 0.5rem 1rem;">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"></path></svg>
+            Back to Home
+          </button>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button class="btn btn-secondary" id="preview-edit-btn">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+            Edit Form
+          </button>
+          <button class="btn btn-secondary" onclick="hfController.openModal()">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            Header &amp; Footer
+          </button>
+          <button class="btn btn-secondary" onclick="momController.shareLink()">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8.684 10.742l4.57 2.285M8.684 13.258l4.57-2.285M12 5a3 3 0 11-6 0 3 3 0 016 0zm0 14a3 3 0 11-6 0 3 3 0 016 0zm0-7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            Share Link
+          </button>
+          <button class="btn btn-secondary" onclick="momController.sendEmail()">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+            Send Email
+          </button>
+          <button class="btn btn-secondary" onclick="momController.exportWord()">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            Export Word
+          </button>
+          <button class="btn btn-primary" onclick="momController.exportPDF()">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 00-2 2h2m2 4h10a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h8z"></path></svg>
+            Export PDF
+          </button>
+        </div>
+      </div>
+      
+      <!-- A4 Sheet Document Container -->
+      <div class="preview-sheet-outer">
+        <div class="mom-sheet" id="print-sheet-content">
+
+          <!-- Document Header Band -->
+          <div class="doc-hf-header hidden" id="doc-hf-header-band">
+            <div class="doc-hf-header-left">
+              <div class="org-name" id="hf-preview-org-name"></div>
+              <div class="org-subtitle" id="hf-preview-org-subtitle"></div>
+              <div class="org-address" id="hf-preview-org-address"></div>
+            </div>
+            <div class="doc-hf-header-right">
+              <div class="doc-ref" id="hf-preview-doc-ref"></div>
+              <div class="doc-date" id="hf-preview-doc-date"></div>
+            </div>
+          </div>
+          <!-- Centered Header (Image 1 Style) -->
+          <div class="mom-sheet-header-centered">
+            <div class="mom-header-title">Minutes of Meeting (MoM)</div>
+            <div class="mom-header-divider"></div>
+            <div class="mom-header-meta" id="p-header-meta">MOM – 2nd June 2026 (Time: 04:00 PM to 05:00 PM IST)</div>
+            <div class="mom-header-divider"></div>
+          </div>
+          
+          <!-- Meeting Agenda Section (Image 2 Style) -->
+          <div class="mom-body-section" style="margin-bottom: 1.5rem;">
+            <strong style="color: black; font-weight: bold; display: block;">Meeting Agenda:</strong>
+            <span id="p-agenda-title" style="color: black; font-weight: normal; display: block; margin-top: 0.15rem;">AIPL Project Module Discussion</span>
+          </div>
+          
+          <!-- Attendees Section (Image 2 Style) -->
+          <div class="mom-body-section">
+            <strong style="color: black; font-weight: bold; display: block; margin-bottom: 0.5rem;">Attendees</strong>
+            <div class="attendees-org-list" id="p-attendees-container">
+              <!-- Dynamic bullet list populated from app.js -->
+            </div>
+          </div>
+          
+          <!-- Discussion Summary Section (Image 2 Style) -->
+          <div class="mom-body-section" style="margin-top: 1.5rem;">
+            <strong style="color: black; font-weight: bold; display: block; margin-bottom: 0.5rem;">Discussion Points</strong>
+            <p style="margin-bottom: 0.5rem; font-size: 0.95rem; font-weight: normal; color: black;">Key discussion points included:</p>
+            <ul class="mom-bullet-list" id="p-discussions-container" style="margin-top: 0.5rem;">
+              <!-- Dynamic bullet list populated from app.js -->
+            </ul>
+          </div>
+          
+          <!-- Action Items Section (Image 3 Style) -->
+          <div class="mom-body-section" style="margin-top: 2rem;">
+            <div class="action-items-preview-header">Action items</div>
+            <div class="action-items-preview-subtitle">Minutes of Meeting (MOM)</div>
+            <table class="action-items-preview-table">
+              <thead>
+                <tr>
+                  <th style="width: 10%; text-align: center;">Serial No</th>
+                  <th style="width: 60%;">Action Item</th>
+                  <th style="width: 15%;">Assign To</th>
+                  <th style="width: 15%;">Due Date</th>
+                </tr>
+              </thead>
+              <tbody id="p-actions-tbody">
+                <!-- Action rows will go here -->
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Scope Notes / Note Section (Image 4 Style) -->
+          <div class="mom-note-box" id="p-note-box" style="margin-top: 2rem; border-top: none; padding-top: 0;">
+            <strong style="color: black; font-weight: bold;">Note:</strong>
+            <p id="p-scope-notes-text" style="font-size: 0.95rem; line-height: 1.5; font-weight: normal; color: black; margin-top: 0.5rem;"></p>
+          </div>
+
+          <!-- Document Footer Band -->
+          <div class="doc-hf-footer hidden" id="doc-hf-footer-band">
+            <div class="footer-left" id="hf-preview-footer-left"></div>
+            <div class="footer-center" id="hf-preview-footer-center"></div>
+            <div class="footer-right" id="hf-preview-footer-right"></div>
+          </div>
+          
+        </div>
+      </div>
+    </section>
+
+    <!-- View 6: Action Items Tracker -->
+    <section id="tracker-view" class="view-section">
+      <h1>Action Tracker</h1>
+      <p class="subtitle">Directly manage and cycle statuses of project action items generated in your meetings. Click on a status badge to toggle it.</p>
+      
+      <!-- Toolbar -->
+      <div class="tracker-toolbar">
+        <div class="tracker-search">
+          <svg class="search-icon-svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          <input type="text" id="tracker-search-input" class="form-input" placeholder="Search by action item, project, or owner..." oninput="trackerController.filterActions()">
+        </div>
+        <div class="tracker-filters">
+          <button class="btn btn-secondary btn-small active" id="filter-all-btn" onclick="trackerController.setFilter('all')">All Actions</button>
+          <button class="btn btn-secondary btn-small" id="filter-open-btn" onclick="trackerController.setFilter('open')">Open</button>
+          <button class="btn btn-secondary btn-small" id="filter-pending-btn" onclick="trackerController.setFilter('pending')">Pending</button>
+          <button class="btn btn-secondary btn-small" id="filter-complete-btn" onclick="trackerController.setFilter('complete')">Complete</button>
+        </div>
+      </div>
+      
+      <!-- Tracker Cards Grid -->
+      <div class="tracker-cards-grid" id="tracker-items-container">
+        <!-- Action list items are added here dynamically -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast Notification System -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Header & Footer Settings Modal -->
+  <div class="hf-modal-overlay" id="hf-modal-overlay" onclick="hfController.handleOverlayClick(event)">
+    <div class="hf-modal">
+      <div class="hf-modal-title">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        Header &amp; Footer Settings
+      </div>
+      <p class="hf-modal-sub">Customize the document header and footer that appear on every page of the exported PDF and Word document.</p>
+
+      <!-- Enable Toggles -->
+      <div class="hf-toggle-row">
+        <div>
+          <span>Show Document Header</span>
+          <small>Displays organization name, address &amp; reference on top</small>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="hf-toggle-header" onchange="hfController.togglePreview()">
+          <span class="toggle-knob"></span>
+        </label>
+      </div>
+      <div class="hf-toggle-row">
+        <div>
+          <span>Show Document Footer</span>
+          <small>Displays confidentiality notice, page info &amp; preparer name</small>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="hf-toggle-footer" onchange="hfController.togglePreview()">
+          <span class="toggle-knob"></span>
+        </label>
+      </div>
+
+      <!-- Header Fields -->
+      <div class="hf-section-heading">Header Details</div>
+      <div class="hf-grid">
+        <div class="hf-field full">
+          <label for="hf-org-name">Organization / Company Name</label>
+          <input type="text" id="hf-org-name" placeholder="e.g. Cloud Conics Pvt. Ltd." oninput="hfController.liveUpdate()">
+        </div>
+        <div class="hf-field full">
+          <label for="hf-org-subtitle">Tagline / Department</label>
+          <input type="text" id="hf-org-subtitle" placeholder="e.g. ERP Solutions &amp; Digital Transformation" oninput="hfController.liveUpdate()">
+        </div>
+        <div class="hf-field full">
+          <label for="hf-org-address">Address / Contact Line</label>
+          <input type="text" id="hf-org-address" placeholder="e.g. Bangalore, India | info@cloudconics.com" oninput="hfController.liveUpdate()">
+        </div>
+        <div class="hf-field">
+          <label for="hf-doc-ref">Document Reference No.</label>
+          <input type="text" id="hf-doc-ref" placeholder="e.g. CC-MOM-2026-001" oninput="hfController.liveUpdate()">
+        </div>
+        <div class="hf-field">
+          <label for="hf-doc-date">Document Date</label>
+          <input type="date" id="hf-doc-date" oninput="hfController.liveUpdate()">
+        </div>
+      </div>
+
+      <!-- Footer Fields -->
+      <div class="hf-section-heading">Footer Details</div>
+      <div class="hf-grid">
+        <div class="hf-field">
+          <label for="hf-footer-left">Left Text</label>
+          <input type="text" id="hf-footer-left" placeholder="e.g. Confidential" oninput="hfController.liveUpdate()">
+        </div>
+        <div class="hf-field">
+          <label for="hf-footer-center">Centre Text</label>
+          <input type="text" id="hf-footer-center" placeholder="e.g. Page 1 of 1" oninput="hfController.liveUpdate()">
+        </div>
+        <div class="hf-field full">
+          <label for="hf-footer-right">Right Text</label>
+          <input type="text" id="hf-footer-right" placeholder="e.g. Prepared by Cloud Conics" oninput="hfController.liveUpdate()">
+        </div>
+      </div>
+
+      <div class="hf-modal-actions">
+        <button class="btn btn-secondary" onclick="hfController.reset()">Reset to Default</button>
+        <button class="btn btn-secondary" onclick="hfController.closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="hfController.save()">Apply &amp; Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>&copy; 2026 MOM Generator & Track - Premium Project Minutes of Meeting platform. Built for streamlined organizational execution.</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>

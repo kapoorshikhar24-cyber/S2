@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Salesforce Field Automator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles/salesforce.css">
+</head>
+<body class="sandbox" id="appBody">
+
+<!-- AUTH OVERLAY -->
+<div id="authOverlay">
+  <div class="auth-card">
+    <div class="auth-title">Salesforce Automator</div>
+    <div class="auth-subtitle">Welcome back. Please log in to continue.</div>
+    <div class="auth-tabs" style="display:none;">
+      <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Log In</div>
+    </div>
+    <div class="auth-error" id="authError"></div>
+    <div class="field">
+      <label for="authUsername">Username</label>
+      <input type="text" id="authUsername" placeholder="Enter username">
+    </div>
+    <div class="field auth-extra">
+      <label for="authFullName">Full Name</label>
+      <input type="text" id="authFullName" placeholder="e.g. Jane Doe">
+    </div>
+    <div class="field auth-extra">
+      <label for="authProfilePic">Profile Picture</label>
+      <div style="display:flex; gap:0.5rem; align-items:center;">
+        <img id="authAvatarPreview" class="avatar-preview">
+        <input type="file" id="authProfilePic" accept="image/*" onchange="previewAvatar(this)" style="padding: 0.4rem; font-size: 0.75rem;">
+      </div>
+    </div>
+    <div class="field" style="margin-top:0.8rem">
+      <label for="authPassword">Password</label>
+      <div class="pwd-wrap">
+        <input type="password" id="authPassword" placeholder="••••••••" style="padding-right: 2.5rem;">
+        <div class="pwd-toggle" onclick="togglePassword('authPassword', this)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <button class="auth-btn" id="authBtn" onclick="submitAuth()">Log In</button>
+  </div>
+</div>
+
+<div class="app-container">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="left-sidebar" id="leftSidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
+          <path d="M12 2L2 7l10 5 10-5-10-5z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17l10 5 10-5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12l10 5 10-5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="sidebar-brand-text">
+        <h2>SF Automator</h2>
+        <p>Bulk Metadata Ops</p>
+      </div>
+    </div>
+    
+    <div class="sidebar-menu">
+      <div class="menu-group">
+        <span class="menu-group-label">Automation</span>
+        <button type="button" class="menu-item active" onclick="switchSidebarTab('single', event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+          Single Field
+        </button>
+        <button type="button" class="menu-item" onclick="switchSidebarTab('change', event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+          Change Field Type
+        </button>
+        <button type="button" class="menu-item" onclick="switchSidebarTab('validation', event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Validation Rule
+        </button>
+        <button type="button" class="menu-item" onclick="switchSidebarTab('user', event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Create User
+        </button>
+        <button type="button" class="menu-item" onclick="switchSidebarTab('bulk', event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 15c.7-1.2 1-2.5.7-3.9-.6-3-3.1-5.2-6.1-5.4-3.5-.3-6.6 2-7.4 5.3-.3.8-.3 1.7-.2 2.5C6.9 14.2 6 15 5 15c-1.7 0-3 1.3-3 3s1.3 3 3 3h16c1.7 0 3-1.3 3-3 0-1.4-.9-2.6-2.2-3z"/></svg>
+          Bulk Upload
+        </button>
+        <button type="button" class="menu-item" onclick="switchSidebarTab('flow', event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M12 7v4m0 0-5.5 6m5.5-6 5.5 6"/></svg>
+          Create Flow
+        </button>
+      </div>
+      
+      <div class="menu-group">
+        <span class="menu-group-label">Objects & Security</span>
+        <button type="button" class="menu-item" onclick="switchSidebarTab('object', event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          Create Object
+        </button>
+        <button type="button" class="menu-item" onclick="switchSidebarTab('permissionset', event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          Permission Sets
+        </button>
+      </div>
+      
+      <div class="menu-group">
+        <span class="menu-group-label">Tools</span>
+        <button type="button" class="menu-item" onclick="switchSidebarTab('schema', event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Schema Explorer
+        </button>
+        <button type="button" class="menu-item" onclick="switchSidebarTab('history', event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          History
+        </button>
+      </div>
+    </div>
+    
+    <div class="sidebar-footer">
+      <button type="button" class="menu-item" onclick="toggleSidebarCollapse()">
+        <svg id="collapseIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+        <span>Collapse Sidebar</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <div class="main-area">
+  
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button type="button" class="sidebar-toggle-btn" onclick="toggleSidebarCollapse()" title="Toggle Sidebar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="topbar-select-wrapper">
+          <div class="topbar-select-container">
+            <span class="topbar-select-label">Environment</span>
+            <select class="topbar-select" id="topbarEnvSelect" onchange="handleEnvSelectChange(this)">
+              <option value="sandbox">Sandbox</option>
+              <option value="production">Production</option>
+              <option value="development">Development</option>
+            </select>
+          </div>
+          <div class="topbar-select-container">
+            <span class="topbar-select-label">Run Mode</span>
+            <select class="topbar-select" id="topbarRunModeSelect" onchange="handleRunModeSelectChange(this)">
+              <option value="local">Local Agent</option>
+              <option value="cloud">Cloud API</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <button id="theme-toggle-btn" class="topbar-icon-btn" onclick="toggleTheme()" title="Toggle Light/Dark Mode">
+          <svg id="theme-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+        </button>
+        <button id="sidebar-copilot-toggle-btn" class="topbar-icon-btn" onclick="toggleRightSidebar()" title="Toggle AI & Console Sidebar">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span class="btn-badge" style="display:none;" id="sidebarCopilotNotificationBadge">!</span>
+        </button>
+        <div class="user-profile-badge">
+          <img id="topAvatar" class="user-avatar" style="display:none;" />
+          <div id="topAvatarInitials" class="user-avatar" style="background: var(--mode-accent); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; width: 24px; height: 24px; border-radius: 50%; font-family: var(--font-head); font-size: 0.75rem;">U</div>
+          <div class="user-profile-info">
+            <span class="user-profile-name" id="loggedInUser">User</span>
+            <span class="user-profile-role" id="loggedInUserRole">Admin</span>
+          </div>
+          <button type="button" class="save-btn" style="padding: 0.25rem 0.5rem; font-size: 0.7rem; border-radius: 6px; margin-left: 0.5rem;" onclick="logout()">Logout</button>
+        </div>
+        <div class="mode-badge" id="modeBadge" style="display: none;">
+          <span class="blink"></span>
+          <span id="badgeText">SANDBOX</span>
+        </div>
+        <button class="settings-btn" id="settingsBtn" onclick="toggleSettings()" title="Credentials Configuration" aria-label="Credentials Configuration">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Workspace Layout -->
+    <div class="workspace-layout">
+      <!-- Center Workspace -->
+      <main class="center-workspace">
+        
+        <!-- Environment Configuration / Credentials Settings Drawer -->
+        <div class="settings-panel" id="settingsPanel">
+          <div class="settings-inner">
+            <div class="settings-title">Environment Mode</div>
+            <div class="mode-grid">
+              <!-- Sandbox -->
+              <div class="mode-card sandbox selected" id="card-sandbox" onclick="setMode('sandbox', true)">
+                <div class="mode-check">
+                  <svg viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><polyline points="2,5 4,7.5 8,2.5"/></svg>
+                </div>
+                <div class="mode-card-header">
+                  <div class="mode-icon sandbox">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </div>
+                  <span class="mode-name">Sandbox</span>
+                </div>
+                <p class="mode-desc">Safe testing environment. No real data affected. Recommended for development.</p>
+              </div>
+
+              <!-- Production -->
+              <div class="mode-card production" id="card-production" onclick="setMode('production', true)">
+                <div class="mode-check">
+                  <svg viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><polyline points="2,5 4,7.5 8,2.5"/></svg>
+                </div>
+                <div class="mode-card-header">
+                  <div class="mode-icon production">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                      <line x1="12" y1="9" x2="12" y2="13"/>
+                      <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                  </div>
+                  <span class="mode-name">Production</span>
+                </div>
+                <p class="mode-desc">Live env. Changes are permanent. Use with caution.</p>
+              </div>
+
+              <!-- Development -->
+              <div class="mode-card development" id="card-development" onclick="setMode('development', true)">
+                <div class="mode-check">
+                  <svg viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><polyline points="2,5 4,7.5 8,2.5"/></svg>
+                </div>
+                <div class="mode-card-header">
+                  <div class="mode-icon development">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34" />
+                      <polygon points="18 2 22 6 12 16 8 16 8 12 18 2" />
+                    </svg>
+                  </div>
+                  <span class="mode-name">Development</span>
+                </div>
+                <p class="mode-desc">Scratch org or dev edition. Ideal for building features.</p>
+              </div>
+            </div>
+            <div class="settings-note" id="settingsNote">
+              🔵 Sandbox mode active — UI is blue. Safe to test.
+            </div>
+
+            <div class="settings-divider"></div>
+            <div class="settings-creds-title">Execution Mode</div>
+            <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; text-align: left;">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; flex: 1; padding: 0.8rem; background: var(--surface2); border: 1.5px solid var(--border-md); border-radius: 10px; font-weight: 500; margin-bottom:0;">
+                <input type="radio" id="runModeLocal" name="sfRunMode" value="local" onclick="setRunMode('local')" style="width:auto; transform:scale(1.1); margin:0;">
+                <div>
+                  <div style="font-size:0.82rem; color:var(--text); font-weight:bold;">🤖 Local Agent <span style="font-size:0.65rem; background:rgba(16,185,129,0.15); color:#10b981; padding:1px 6px; border-radius:4px; margin-left:4px;">Recommended</span></div>
+                  <div style="font-size:0.68rem; color:var(--muted); font-weight:normal; margin-top:2px; line-height:1.2;">Playwright browser — no security token needed.</div>
+                </div>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; flex: 1; padding: 0.8rem; background: var(--surface2); border: 1.5px solid var(--border-md); border-radius: 10px; font-weight: 500; margin-bottom:0;">
+                <input type="radio" id="runModeCloud" name="sfRunMode" value="cloud" onclick="setRunMode('cloud')" style="width:auto; transform:scale(1.1); margin:0;">
+                <div>
+                  <div style="font-size:0.82rem; color:var(--text); font-weight:bold;">☁️ Cloud (API)</div>
+                  <div style="font-size:0.68rem; color:var(--muted); font-weight:normal; margin-top:2px; line-height:1.2;">Vercel API — may require security token.</div>
+                </div>
+              </label>
+            </div>
+
+            <!-- Local Setup Helper panel -->
+            <div id="localSetupPanel" style="display:none; padding: 1rem; background: rgba(234,179,8,0.06); border: 1px solid rgba(234,179,8,0.2); border-radius: 10px; margin-bottom: 1rem; text-align: left;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.8rem;">
+                <div style="font-size:0.85rem; font-weight:700; color: #eab308; display:flex; align-items:center; gap:6px;">
+                  <span class="dot" id="agentStatusDot" style="background:#ef4444; width:8px; height:8px; display:inline-block; border-radius:50%; animation:none; margin:0;"></span>
+                  Local Agent: <span id="agentStatusText">Offline</span>
+                </div>
+                <button type="button" class="save-btn" style="padding:0.3rem 0.6rem; font-size:0.72rem; background:transparent; border:1px solid var(--border-md); color:var(--text);" onclick="checkLocalAgentStatus()">Refresh</button>
+              </div>
+
+              <!-- One-click installer -->
+              <div style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem;">
+                <div style="font-size:0.78rem; font-weight:700; color:#10b981; margin-bottom:0.3rem;">⚡ One-Click Setup (New PC)</div>
+                <p style="font-size:0.74rem; color:var(--subtle); line-height:1.5; margin-bottom:0.6rem;">
+                  Download <strong>start_agent.bat</strong>, double-click it — it auto-installs Python, Playwright &amp; starts the agent. Nothing else needed.
+                </p>
+                <a href="javascript:void(0)" onclick="downloadLocalInstaller('win')" style="display:flex; align-items:center; justify-content:center; gap:6px; width:100%; padding:0.55rem; background:#10b981; color:#fff; border-radius:7px; font-size:0.82rem; font-weight:700; text-decoration:none; font-family:var(--font-head); transition:opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                  ⬇️ Download start_agent.bat
+                </a>
+              </div>
+
+              <p style="font-size:0.74rem; color:var(--muted); line-height:1.4; margin-bottom:0.6rem;">Or generate a custom installer script:</p>
+              <div style="display:flex; gap:6px;">
+                <button type="button" class="save-btn" style="padding:0.4rem 0.8rem; font-size:0.75rem; border-radius:6px; flex:1; display:flex; align-items:center; justify-content:center; gap:4px; font-weight:bold;" onclick="downloadLocalInstaller('win')">
+                  ⚙️ Windows (.bat)
+                </button>
+                <button type="button" class="save-btn" style="padding:0.4rem 0.8rem; font-size:0.75rem; border-radius:6px; flex:1; display:flex; align-items:center; justify-content:center; gap:4px; font-weight:bold;" onclick="downloadLocalInstaller('mac')">
+                  ⚙️ macOS/Linux (.sh)
+                </button>
+              </div>
+            </div>
+
+            <div class="settings-divider"></div>
+            <div class="settings-creds-title">Credentials</div>
+
+            <div class="field">
+              <label for="projectSelector">Select Project</label>
+              <select id="projectSelector" onchange="loadProjectCredentials()">
+                <option value="Default">Default</option>
+                <option value="_new_">+ Create New Project</option>
+              </select>
+            </div>
+            
+            <div class="field" id="newProjectNameWrap" style="display:none;">
+              <label for="projectName">New Project Name</label>
+              <input type="text" id="projectName" placeholder="e.g. Acme Corp">
+            </div>
+
+            <div class="field">
+              <label for="url">Login URL</label>
+              <input type="url" id="url" value="https://test.salesforce.com/" required>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="you@org.com" required>
+              </div>
+              <div class="field">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="••••••••" required>
+                <span style="font-size:0.65rem; color:var(--muted); margin-top:4px; display:block; line-height:1.25;">
+                  💡 For Cloud Mode, append your security token (e.g. <code>PasswordToken</code>) if API access is restricted.
+                </span>
+              </div>
+            </div>
+            <div class="settings-save-wrap" style="margin-top: 1.2rem; display: flex; justify-content: flex-end;">
+              <button type="button" class="save-btn" onclick="saveSettings()">Save Settings</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats Grid Row -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-info">
+              <span class="stat-label">Environment</span>
+              <span class="stat-value" id="statEnv">Sandbox</span>
+              <span class="stat-sub" id="statEnvSub">Safe Testing</span>
+            </div>
+            <div class="stat-icon env">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-info">
+              <span class="stat-label">Execution Mode</span>
+              <span class="stat-value" id="statRunMode">Local Agent</span>
+              <span class="stat-sub" id="statRunModeSub">Playwright Driver</span>
+            </div>
+            <div class="stat-icon mode">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34" /><polygon points="18 2 22 6 12 16 8 16 8 12 18 2" /></svg>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-info">
+              <span class="stat-label">Active Project</span>
+              <span class="stat-value" id="statProject">Default</span>
+              <span class="stat-sub" id="statProjectSub">Ready</span>
+            </div>
+            <div class="stat-icon project">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-info">
+              <span class="stat-label">Last Run Status</span>
+              <span class="stat-value" id="statLastRun">No Runs</span>
+              <span class="stat-sub" id="statLastRunSub">-</span>
+            </div>
+            <div class="stat-icon run">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Workspace Form Card -->
+        <div class="card">
+          <div class="card-accent-bar"></div>
+
+          <form id="salesforceForm">
+
+            <!-- Prefill Banner -->
+            <div id="prefillBanner" class="prefill-banner" style="display: none; background: var(--mode-accent-bg); border: 1.5px solid var(--mode-accent); border-radius: var(--border-radius); padding: 1.2rem; margin-bottom: 1.5rem; text-align: left; position: relative;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+                <div style="flex: 1;">
+                  <div style="font-weight: 700; color: var(--mode-accent); font-family: var(--font-head); font-size: 0.92rem; display: flex; align-items: center; gap: 6px; margin-bottom: 0.4rem;">
+                    <span>⚡ Prefilled Action Item from MOM</span>
+                  </div>
+                  <p id="prefillDesc" style="font-size: 0.82rem; color: var(--subtle); line-height: 1.5; margin: 0;"></p>
+                </div>
+                <div style="flex-shrink: 0; display: flex; gap: 8px;">
+                  <button type="button" id="aiAssistBtn" class="save-btn" style="padding: 0.45rem 0.9rem; font-size: 0.76rem; border-radius: 6px; font-weight: bold; background: var(--mode-accent); color: white; border: none; display: flex; align-items: center; gap: 6px; cursor: pointer;" onclick="triggerAIAssist()">
+                    ✨ AI Assist Parse
+                  </button>
+                  <button type="button" class="save-btn" style="padding: 0.45rem 0.9rem; font-size: 0.76rem; border-radius: 6px; font-weight: 500; background: var(--surface2); border: 1px solid var(--border-md); color: var(--subtle); cursor: pointer;" onclick="clearPrefill()">
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Single Tab -->
+            <div id="single-tab" class="tab-content active">
+              <!-- Field Config -->
+              <div class="section" id="section-field">
+                <div class="section-label">Field Configuration</div>
+                <div class="row">
+                  <div class="field">
+                    <label for="objectName">Object Name</label>
+                    <input type="text" id="objectName" value="Account" class="single-req">
+                  </div>
+                  <div class="field">
+                    <label for="dataTypeSearch">Data Type</label>
+                    <div class="custom-select" id="customSelect">
+                      <input type="text" id="dataTypeSearch" placeholder="Select type..." autocomplete="off" class="single-req">
+                      <div class="select-options" id="selectOptions">
+                        <div class="option" data-value="Number">Number</div>
+                        <div class="option" data-value="Currency">Currency</div>
+                        <div class="option" data-value="Date">Date</div>
+                        <div class="option" data-value="Date/Time">Date/Time</div>
+                        <div class="option" data-value="Phone">Phone</div>
+                        <div class="option" data-value="Picklist">Picklist</div>
+                        <div class="option" data-value="Text">Text</div>
+                      </div>
+                    </div>
+                    <input type="hidden" id="dataType" class="single-req">
+                  </div>
+                </div>
+
+                <div id="dynamicContainer">
+                  <!-- Number -->
+                  <div id="fields-Number" class="dynamic-fields">
+                    <div class="divider"></div>
+                    <div class="field">
+                      <label>Field Label</label>
+                      <input type="text" name="Number-FieldLabel" placeholder="e.g. Annual Revenue">
+                    </div>
+                    <div class="row">
+                      <div class="field">
+                        <label>Length</label>
+                        <input type="number" name="Number-Length" value="18">
+                      </div>
+                      <div class="field">
+                        <label>Decimal Places</label>
+                        <input type="number" name="Number-DecimalPlaces" value="0">
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label>API Name</label>
+                      <input type="text" name="Number-FieldName" placeholder="Annual_Revenue__c" style="font-family:var(--font-mono);font-size:0.83rem;">
+                    </div>
+                  </div>
+                  <!-- Currency -->
+                  <div id="fields-Currency" class="dynamic-fields">
+                    <div class="divider"></div>
+                    <div class="field">
+                      <label>Field Label</label>
+                      <input type="text" name="Currency-FieldLabel" placeholder="e.g. Annual Revenue">
+                    </div>
+                    <div class="row">
+                      <div class="field">
+                        <label>Length</label>
+                        <input type="number" name="Currency-Length" value="16">
+                      </div>
+                      <div class="field">
+                        <label>Decimal Places</label>
+                        <input type="number" name="Currency-DecimalPlaces" value="2">
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label>API Name</label>
+                      <input type="text" name="Currency-FieldName" placeholder="Annual_Revenue__c" style="font-family:var(--font-mono);font-size:0.83rem;">
+                    </div>
+                  </div>
+                  <!-- Date -->
+                  <div id="fields-Date" class="dynamic-fields">
+                    <div class="divider"></div>
+                    <div class="field">
+                      <label>Field Label</label>
+                      <input type="text" name="Date-FieldLabel" placeholder="e.g. Birthdate">
+                    </div>
+                    <div class="field">
+                      <label>API Name</label>
+                      <input type="text" name="Date-FieldName" placeholder="Birthdate__c" style="font-family:var(--font-mono);font-size:0.83rem;">
+                    </div>
+                  </div>
+                  <!-- Date/Time -->
+                  <div id="fields-Date/Time" class="dynamic-fields">
+                    <div class="divider"></div>
+                    <div class="field">
+                      <label>Field Label</label>
+                      <input type="text" name="Date/Time-FieldLabel" placeholder="e.g. Created Date">
+                    </div>
+                    <div class="field">
+                      <label>API Name</label>
+                      <input type="text" name="Date/Time-FieldName" placeholder="Created_Date__c" style="font-family:var(--font-mono);font-size:0.83rem;">
+                    </div>
+                  </div>
+                  <!-- Phone -->
+                  <div id="fields-Phone" class="dynamic-fields">
+                    <div class="divider"></div>
+                    <div class="field">
+                      <label>Field Label</label>
+                      <input type="text" name="Phone-FieldLabel" placeholder="e.g. Mobile Phone">
+                    </div>
+                    <div class="field">
+                      <label>API Name</label>
+                      <input type="text" name="Phone-FieldName" placeholder="Mobile_Phone__c" style="font-family:var(--font-mono);font-size:0.83rem;">
+                    </div>
+                  </div>
+                  <!-- Picklist -->
+                  <div id="fields-Picklist" class="dynamic-fields">
+                    <div class="divider"></div>
+                    <div class="field">
+                      <label>Field Label</label>
+                      <input type="text" name="Picklist-FieldLabel" placeholder="e.g. Status">
+                    </div>
+                    <div class="field">
+                      <label>Values <span style="font-weight:300;color:var(--muted)">(one per line)</span></label>
+                      <textarea name="Picklist-Values" placeholder="Active&#10;Inactive&#10;Pending"></textarea>
+                    </div>
+                    <div class="field">
+                      <label>API Name</label>
+                      <input type="text" name="Picklist-FieldName" placeholder="Status__c" style="font-family:var(--font-mono);font-size:0.83rem;">
+                    </div>
+                  </div>
+                  <!-- Text -->
+                  <div id="fields-Text" class="dynamic-fields">
+                    <div class="divider"></div>
+                    <div class="field">
+                      <label>Field Label</label>
+                      <input type="text" name="Text-FieldLabel" placeholder="e.g. External ID">
+                    </div>
+                    <div class="field">
+                      <label>Length</label>
+                      <input type="number" name="Text-Length" value="255">
+                    </div>
+                    <div class="field">
+                      <label>API Name</label>
+                      <input type="text" name="Text-FieldName" placeholder="External_ID__c" style="font-family:var(--font-mono);font-size:0.83rem;">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Change Field Type Tab -->
+            <div id="change-tab" class="tab-content">
+              <!-- Field Config -->
+              <div class="section" id="section-change">
+                <div class="section-label">Change Field Type Configuration</div>
+                <div class="field">
+                  <label for="changeObjectName">Object Name</label>
+                  <input type="text" id="changeObjectName" value="Account" class="change-req">
+                </div>
+                <div class="row">
+                  <div class="field">
+                    <label for="changeFieldName">Field API Name (e.g. My_Custom_Field__c)</label>
+                    <input type="text" id="changeFieldName" placeholder="Enter API Name..." class="change-req" style="font-family:var(--font-mono);font-size:0.83rem;">
+                  </div>
+                  <div class="field">
+                    <label for="changeDataTypeSearch">New Data Type</label>
+                    <div class="custom-select" id="changeCustomSelect">
+                      <input type="text" id="changeDataTypeSearch" placeholder="Select type..." autocomplete="off" class="change-req">
+                      <div class="select-options" id="changeSelectOptions">
+                        <div class="option" data-value="Number">Number</div>
+                        <div class="option" data-value="Currency">Currency</div>
+                        <div class="option" data-value="Date">Date</div>
+                        <div class="option" data-value="Date/Time">Date/Time</div>
+                        <div class="option" data-value="Phone">Phone</div>
+                        <div class="option" data-value="Picklist">Picklist</div>
+                        <div class="option" data-value="Text">Text</div>
+                      </div>
+                    </div>
+                    <input type="hidden" id="changeDataType" class="change-req">
+                  </div>
+                </div>
+
+                <div id="changeDynamicContainer">
+                  <!-- Number -->
+                  <div id="changeFields-Number" class="dynamic-fields">
+                    <div class="divider"></div>
+                    <div class="row">
+                      <div class="field">
+                        <label>Length</label>
+                        <input type="number" name="ChangeNumber-Length" value="18">
+                      </div>
+                      <div class="field">
+                        <label>Decimal Places</label>
+                        <input type="number" name="ChangeNumber-DecimalPlaces" value="0">
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Currency -->
+                  <div id="changeFields-Currency" class="dynamic-fields">
+                    <div class="divider"></div>
+                    <div class="row">
+                      <div class="field">
+                        <label>Length</label>
+                        <input type="number" name="ChangeCurrency-Length" value="16">
+                      </div>
+                      <div class="field">
+                        <label>Decimal Places</label>
+                        <input type="number" name="ChangeCurrency-DecimalPlaces" value="2">
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Picklist -->
+                  <div id="changeFields-Picklist" class="dynamic-fields">
+                    <div class="divider"></div>
+                    <div class="field">
+                      <label>Values <span style="font-weight:300;color:var(--muted)">(one per line)</span></label>
+                      <textarea name="ChangePicklist-Values" placeholder="Active&#10;Inactive&#10;Pending"></textarea>
+                    </div>
+                  </div>
+                  <!-- Text -->
+                  <div id="changeFields-Text" class="dynamic-fields">
+                    <div class="divider"></div>
+                    <div class="field">
+                      <label>Length</label>
+                      <input type="number" name="ChangeText-Length" value="255">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Validation Tab -->
+            <div id="validation-tab" class="tab-content">
+              <!-- Validation Rule Config -->
+              <div class="section" id="section-validation">
+                <div class="section-label">Validation Rule Configuration</div>
+                <div class="row">
+                  <div class="field">
+                    <label for="valObjectName">Object Name</label>
+                    <input type="text" id="valObjectName" value="Account" placeholder="e.g. Account, Contact, Custom_Object__c" pattern="^[a-zA-Z][a-zA-Z0-9_]*(__c)?$" title="Enter a valid Salesforce Object API Name." class="single-val-req" oninput="scheduleFieldLoad()" onblur="loadObjectFields()">
+                  </div>
+                  <div class="field">
+                    <label for="valRuleName">Rule Name</label>
+                    <input type="text" id="valRuleName" placeholder="e.g. Prevent_Invalid_Age" pattern="^[a-zA-Z][a-zA-Z0-9_]*$" title="Only letters, numbers, and underscores are allowed (no spaces)." class="single-val-req">
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="field">
+                    <label for="valTargetField">Target Field Name</label>
+                    <div class="custom-select" id="valTargetFieldWrap">
+                      <input type="text" id="valTargetField" placeholder="Select a field for auto-preset…" autocomplete="off" oninput="filterValFields('valTargetField')" onfocus="openValFieldDropdown('valTargetField')">
+                      <div class="select-options" id="valTargetFieldOptions"></div>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="valTemplate">Auto Formula Preset</label>
+                    <select id="valTemplate" onchange="applyValPreset()">
+                      <option value="">-- Choose a template --</option>
+                      <optgroup label="Field Checks">
+                        <option value="required">Required Field Check (ISBLANK)</option>
+                        <option value="null_check">Null Value Check (ISNULL)</option>
+                        <option value="number_check">Must Be Numeric (ISNUMBER)</option>
+                        <option value="field_changed">Prevent Field Change (ISCHANGED)</option>
+                      </optgroup>
+                      <optgroup label="Text Validations">
+                        <option value="regex_zip">Postal Code Format (REGEX)</option>
+                        <option value="regex_email">Custom Email Format (REGEX)</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                </div>
+                
+                <div class="fx-builder" id="formulaHelper">
+                  <div class="fx-header" onclick="document.getElementById('formulaHelper').classList.toggle('open')">
+                    <div class="fx-header-left">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
+                      Formula Function Reference
+                    </div>
+                    <svg class="fx-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                  <div class="fx-body">
+                    <input type="text" class="fx-search" id="fxSearch" placeholder="Search functions… e.g. ISBLANK, REGEX, TODAY" oninput="filterFxFunctions()">
+                    <div class="fx-cats" id="fxCats"></div>
+                    <div class="fx-grid" id="fxGrid"></div>
+                  </div>
+                </div>
+                <div class="field">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.4rem;">
+                    <label for="valFormula" style="margin-bottom:0;">Error Condition Formula</label>
+                    <span style="font-family:var(--font-mono); font-size:0.68rem; color:var(--muted);">Click a function above to insert it</span>
+                  </div>
+                  <textarea id="valFormula" placeholder="e.g. Age__c < 18" class="single-val-req" style="min-height:80px; font-family:var(--font-mono); font-size:0.8rem;"></textarea>
+                  <div id="formulaLinterBox" style="display:none; margin-top: 0.5rem; padding: 0.6rem 0.8rem; background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2); border-radius: 7px; font-size: 0.78rem;">
+                    <div style="display: flex; align-items: flex-start; gap: 6px;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" style="flex-shrink:0; margin-top:1px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                      <div id="formulaLinterMessage" style="color: var(--text);"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="field">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.4rem;">
+                      <label for="valErrorMsg" style="margin-bottom:0;">Error Message</label>
+                      <span id="valErrorMsgCounter" style="font-family:var(--font-mono); font-size:0.7rem; color:var(--muted);">0 / 255</span>
+                    </div>
+                    <textarea id="valErrorMsg" placeholder="e.g. Age must be 18 or older." maxlength="255" class="single-val-req" style="min-height:60px;"></textarea>
+                  </div>
+                  <div class="field">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.4rem;">
+                      <label for="valErrorField" style="margin-bottom:0;">Error Location Field <span style="font-weight:300;color:var(--muted)">(Optional)</span></label>
+                      <span id="valFieldsStatus" style="font-family:var(--font-mono); font-size:0.68rem; color:var(--muted);"></span>
+                    </div>
+                    <div class="custom-select" id="valErrorFieldWrap">
+                      <input type="text" id="valErrorField" placeholder="Type or select a field…" autocomplete="off" oninput="filterValFields('valErrorField')" onfocus="openValFieldDropdown('valErrorField')">
+                      <div class="select-options" id="valErrorFieldOptions"></div>
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Leave blank for 'Top of Page'</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Object Tab -->
+            <div id="object-tab" class="tab-content">
+              <div class="section" id="section-object">
+                <div class="section-label">Create Custom Object</div>
+                <div class="row">
+                  <div class="field">
+                    <label for="newObjectLabel">Label</label>
+                    <input type="text" id="newObjectLabel" placeholder="e.g. Project">
+                  </div>
+                  <div class="field">
+                    <label for="newObjectPlural">Plural Label</label>
+                    <input type="text" id="newObjectPlural" placeholder="e.g. Projects">
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="newObjectName">Object Name (API Name)</label>
+                  <input type="text" id="newObjectName" placeholder="e.g. Project">
+                </div>
+                <div class="divider"></div>
+                <div class="row">
+                  <div class="field">
+                    <label for="newObjectRecordName">Record Name</label>
+                    <input type="text" id="newObjectRecordName" placeholder="e.g. Project Name">
+                  </div>
+                  <div class="field">
+                    <label for="newObjectDataType">Data Type</label>
+                    <select id="newObjectDataType" style="width: 100%; padding: 0.55rem; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border-md); color: var(--text);">
+                      <option value="Text">Text</option>
+                      <option value="AutoNumber">Auto Number</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Permission Set Tab -->
+            <div id="permissionset-tab" class="tab-content">
+              <div class="section" id="section-permissionset">
+                <div class="section-label">Permission Set Assignment</div>
+                <div class="field">
+                  <label for="permSetName">Permission Set Name</label>
+                  <input type="text" id="permSetName" placeholder="e.g. Salesforce_Admin_Access">
+                </div>
+                <div class="field">
+                  <label for="permSetUsers">Assign to Users (Usernames, comma-separated)</label>
+                  <textarea id="permSetUsers" rows="3" placeholder="user1@example.com, user2@example.com"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- User Tab -->
+            <div id="user-tab" class="tab-content">
+              <div class="section" id="section-user">
+                <div class="section-label">User Configuration</div>
+                <div class="field" style="margin-bottom: 1rem;">
+                  <label for="userActionSelect">Action</label>
+                  <select id="userActionSelect" class="single-user-req" onchange="toggleUserAction()" style="width: 100%; padding: 0.55rem; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border-md); color: var(--text);">
+                    <option value="create">Create New User</option>
+                    <option value="update">Update Existing User Status</option>
+                  </select>
+                </div>
+                <div id="userCreateFields">
+                  <div class="row">
+                    <div class="field">
+                      <label for="userFirstName">First Name</label>
+                      <input type="text" id="userFirstName" placeholder="e.g. John">
+                    </div>
+                    <div class="field">
+                      <label for="userLastName">Last Name</label>
+                      <input type="text" id="userLastName" placeholder="e.g. Doe" class="single-user-req">
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="field">
+                      <label for="userEmail">Email</label>
+                      <input type="email" id="userEmail" placeholder="you@example.com" class="single-user-req" oninput="updateUserUsername()">
+                    </div>
+                    <div class="field">
+                      <label for="userUsername">Username</label>
+                      <input type="email" id="userUsername" placeholder="Auto-fills based on email" class="single-user-req">
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="field">
+                      <label for="userRole">Role (Optional)</label>
+                      <input type="text" id="userRole" placeholder="e.g. CEO">
+                    </div>
+                    <div class="field">
+                      <label for="userLicense">User License</label>
+                      <input type="text" id="userLicense" placeholder="e.g. Salesforce">
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="userProfile">Profile</label>
+                    <input type="text" id="userProfile" placeholder="e.g. System Administrator">
+                  </div>
+                  <div class="field">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                      <input type="checkbox" id="userGenPassword" style="width:auto; transform:scale(1.2);">
+                      Generate new password and notify user immediately
+                    </label>
+                    <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;" id="userGenPasswordNote">Disabled in Sandbox mode.</div>
+                  </div>
+                </div>
+                <div id="userUpdateFields" style="display: none;">
+                  <div class="field">
+                    <label for="updateUserUsername">Username (to search for)</label>
+                    <input type="email" id="updateUserUsername" placeholder="e.g. you@example.com">
+                  </div>
+                  <div class="field">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                      <input type="checkbox" id="updateUserActive" style="width:auto; transform:scale(1.2);" checked>
+                      User is Active
+                    </label>
+                    <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Check to activate, uncheck to deactivate.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bulk Tab -->
+            <div id="bulk-tab" class="tab-content">
+              <div class="section">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.1rem;">
+                  <div class="section-label" style="margin-bottom:0; flex:1;">Bulk Upload</div>
+                </div>
+                
+                <div class="field" id="bulkLoadedAlert" style="display:none; margin-bottom: 1rem; padding: 0.8rem 1rem; background: var(--mode-accent-bg); border: 1px solid var(--mode-accent-dim); border-radius: 8px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:0.82rem; color:var(--text); font-weight:500;" id="bulkLoadedAlertText">Staged items loaded from Copilot</span>
+                    <button type="button" class="save-btn" style="padding:0.3rem 0.6rem; font-size:0.75rem; background:transparent; border:1px solid var(--border-md); color:var(--text);" onclick="clearBulkLoadedCopilot()">Clear Data</button>
+                  </div>
+                </div>
+                <div style="display:flex; gap:6px; margin-bottom:1rem;">
+                  <button type="button" class="save-btn" style="padding:0.4rem 0.8rem; font-size:0.75rem; border-radius:6px;" onclick="downloadTemplate('field')">Field Template</button>
+                  <button type="button" class="save-btn" style="padding:0.4rem 0.8rem; font-size:0.75rem; border-radius:6px;" onclick="downloadTemplate('validation')">Validation Template</button>
+                  <button type="button" class="save-btn" style="padding:0.4rem 0.8rem; font-size:0.75rem; border-radius:6px;" onclick="downloadTemplate('user')">User Template</button>
+                  <button type="button" class="save-btn" style="padding:0.4rem 0.8rem; font-size:0.75rem; border-radius:6px;" onclick="downloadTemplate('user_update')">Update Status Template</button>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
+                  <div class="csv-info" style="margin-bottom:0;">
+                    <p style="font-weight: 500; margin-bottom: 4px;">Custom Fields CSV Headers:</p>
+                    <code style="font-size:0.7rem; word-break:break-all;">ObjectName,DataType,FieldLabel,FieldName,Length,DecimalPlaces,PicklistValues</code>
+                  </div>
+                  <div class="csv-info" style="margin-bottom:0;">
+                    <p style="font-weight: 500; margin-bottom: 4px;">Validation Rules CSV Headers:</p>
+                    <code style="font-size:0.7rem; word-break:break-all;">ObjectName,RuleName,Formula,ErrorMessage,ErrorField</code>
+                  </div>
+                  <div class="csv-info" style="margin-bottom:0;">
+                    <p style="font-weight: 500; margin-bottom: 4px;">Users CSV Headers:</p>
+                    <code style="font-size:0.7rem; word-break:break-all;">FirstName,LastName,Email,Username,GeneratePassword,Role,License,Profile</code>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="csvFile">CSV File <span style="font-weight:300;color:var(--muted)">(Auto-detects format)</span></label>
+                  <input type="file" id="csvFile" accept=".csv" class="bulk-req">
+                </div>
+              </div>
+            </div>
+
+            <!-- Create Flow Tab -->
+            <div id="flow-tab" class="tab-content">
+              <div class="section" id="section-flow">
+                <div class="section-label">Flow Builder</div>
+                <div class="row">
+                  <div class="field">
+                    <label for="flowLabel">Flow Label</label>
+                    <input type="text" id="flowLabel" placeholder="e.g. Account Onboarding Flow" class="flow-req" oninput="autoFlowApiName()">
+                  </div>
+                  <div class="field">
+                    <label for="flowApiName">Flow API Name</label>
+                    <input type="text" id="flowApiName" placeholder="e.g. Account_Onboarding_Flow" class="flow-req" style="font-family:var(--font-mono);font-size:0.83rem;" pattern="^[a-zA-Z][a-zA-Z0-9_]*$" title="Must start with a letter; only letters, numbers, underscores.">
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="field">
+                    <label for="flowType">Flow Type</label>
+                    <select id="flowType" class="flow-req" style="width:100%;padding:0.55rem;border-radius:8px;background:var(--surface2);border:1px solid var(--border-md);color:var(--text);" onchange="onFlowTypeChange()">
+                      <option value="AutoLaunchedFlow">Auto-Launched Flow (No Trigger)</option>
+                      <option value="Flow" selected>Screen Flow</option>
+                      <option value="RecordBeforeSave">Record-Triggered Before Save</option>
+                      <option value="RecordAfterSave">Record-Triggered After Save</option>
+                      <option value="Schedule">Scheduled Flow</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="flowDescription">Description <span style="font-weight:300;color:var(--muted)">(Optional)</span></label>
+                    <input type="text" id="flowDescription" placeholder="What does this flow do?">
+                  </div>
+                </div>
+                <div id="flowTriggerConfig" style="display:none;">
+                  <div class="divider"></div>
+                  <div class="section-label" style="font-size:0.75rem;margin-bottom:0.75rem;">Trigger Configuration</div>
+                  <div class="row">
+                    <div class="field">
+                      <label for="flowTriggerObject">Trigger Object</label>
+                      <input type="text" id="flowTriggerObject" placeholder="e.g. Account">
+                    </div>
+                    <div class="field">
+                      <label for="flowTriggerEvent">Trigger Event</label>
+                      <select id="flowTriggerEvent" style="width:100%;padding:0.55rem;border-radius:8px;background:var(--surface2);border:1px solid var(--border-md);color:var(--text);">
+                        <option value="RecordBeforeCreate">Before Create</option>
+                        <option value="RecordAfterCreate">After Create</option>
+                        <option value="RecordBeforeUpdate">Before Update</option>
+                        <option value="RecordAfterUpdate">After Update</option>
+                        <option value="RecordBeforeDelete">Before Delete</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div class="divider"></div>
+                <div class="section-label" style="font-size:0.75rem;margin-bottom:0.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+                  <span>Flow Elements</span>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button type="button" class="save-btn" style="padding:0.3rem 0.7rem;font-size:0.72rem;" onclick="addFlowElement('Assignment')">+ Assignment</button>
+                    <button type="button" class="save-btn" style="padding:0.3rem 0.7rem;font-size:0.72rem;" onclick="addFlowElement('Decision')">+ Decision</button>
+                    <button type="button" class="save-btn" style="padding:0.3rem 0.7rem;font-size:0.72rem;" onclick="addFlowElement('RecordCreate')">+ Record Create</button>
+                    <button type="button" class="save-btn" style="padding:0.3rem 0.7rem;font-size:0.72rem;" onclick="addFlowElement('RecordUpdate')">+ Record Update</button>
+                    <button type="button" class="save-btn" style="padding:0.3rem 0.7rem;font-size:0.72rem;" onclick="addFlowElement('Screen')">+ Screen</button>
+                    <button type="button" class="save-btn" style="padding:0.3rem 0.7rem;font-size:0.72rem;" onclick="addFlowElement('Loop')">+ Loop</button>
+                  </div>
+                </div>
+                <div id="flowElementList" style="display:flex;flex-direction:column;gap:0.6rem;min-height:60px;margin-bottom:0.75rem;">
+                  <div id="flowEmptyState" style="text-align:center;color:var(--muted);font-size:0.82rem;padding:1.5rem 0;border:1.5px dashed var(--border-md);border-radius:10px;">
+                    Click an element button above to build your flow. A Start element is always included automatically.
+                  </div>
+                </div>
+                <div id="flowElementEditor" style="display:none;background:var(--surface2);border:1px solid var(--border-md);border-radius:10px;padding:1rem;margin-bottom:0.75rem;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+                    <div style="font-size:0.8rem;font-weight:600;color:var(--mode-accent);" id="flowEditorTitle">Element Editor</div>
+                    <button type="button" onclick="closeFlowEditor()" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1;">&#x2715;</button>
+                  </div>
+                  <div id="flowEditorBody"></div>
+                </div>
+                <div class="divider"></div>
+                <div class="section-label" style="font-size:0.75rem;margin-bottom:0.5rem;display:flex;align-items:center;justify-content:space-between;">
+                  <span>Flow Variables <span style="font-weight:300;color:var(--muted)">(Optional)</span></span>
+                  <button type="button" class="save-btn" style="padding:0.3rem 0.7rem;font-size:0.72rem;" onclick="addFlowVariable()">+ Add Variable</button>
+                </div>
+                <div id="flowVariableList" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.5rem;">
+                  <div id="flowVarEmpty" style="font-size:0.78rem;color:var(--muted);">No variables defined.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- History Tab -->
+            <div id="history-tab" class="tab-content">
+              <div class="section">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.1rem; flex-wrap:wrap; gap:0.75rem;">
+                  <div class="section-label" style="margin-bottom:0; flex:1; min-width:150px;">Field Creation History</div>
+                  <input type="text" id="historySearch" placeholder="Search history..." style="width: 250px; padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border-md); color: var(--text);" oninput="filterHistory()">
+                  <button type="button" class="save-btn" style="padding:0.4rem 0.8rem; font-size:0.75rem; border-radius:6px;" onclick="exportHistory()">Export CSV</button>
+                </div>
+                <div style="overflow-x: auto;">
+                  <table style="width:100%; text-align:left; border-collapse:collapse; font-size:0.85rem;">
+                    <thead>
+                      <tr style="border-bottom:1px solid var(--border); color:var(--mode-accent);">
+                        <th style="padding:0.75rem 0.5rem; font-weight:500;">Timestamp</th>
+                        <th style="padding:0.75rem 0.5rem; font-weight:500;">Project</th>
+                        <th style="padding:0.75rem 0.5rem; font-weight:500;">Object</th>
+                        <th style="padding:0.75rem 0.5rem; font-weight:500;">Data Type</th>
+                        <th style="padding:0.75rem 0.5rem; font-weight:500;">Label</th>
+                        <th style="padding:0.75rem 0.5rem; font-weight:500;">API Name</th>
+                        <th style="padding:0.75rem 0.5rem; font-weight:500;">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                      <tr><td colspan="7" style="text-align:center; padding:1.5rem; color:var(--muted);">Loading history...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div id="historyPagination" style="display:flex; justify-content:flex-end; gap:8px; margin-top:1rem; align-items:center;">
+                   <button type="button" class="save-btn" style="padding:0.3rem 0.6rem; font-size:0.75rem; border-radius:6px;" onclick="prevHistoryPage()">Prev</button>
+                   <span id="historyPageInfo" style="font-size:0.8rem; color:var(--muted);">Page 1 of 1</span>
+                   <button type="button" class="save-btn" style="padding:0.3rem 0.6rem; font-size:0.75rem; border-radius:6px;" onclick="nextHistoryPage()">Next</button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Schema Explorer Tab -->
+            <div id="schema-tab" class="tab-content">
+              <div class="section">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.1rem; gap: 1rem; flex-wrap:wrap;">
+                  <div class="section-label" style="margin-bottom:0; flex:1; min-width:150px;">Schema Explorer</div>
+                  <!-- Autocomplete Object Select -->
+                  <div class="custom-select" id="schemaObjectSelectWrap" style="width: 250px;">
+                    <input type="text" id="schemaObjectSearch" placeholder="Search standard or custom object..." autocomplete="off" oninput="filterSchemaObjects()" onfocus="openSchemaObjectsDropdown()">
+                    <div class="select-options" id="schemaObjectOptions"></div>
+                  </div>
+                  <button type="button" class="save-btn" style="padding:0.55rem 1rem; font-size:0.8rem; border-radius:8px;" onclick="loadSchemaFields()">Inspect Object</button>
+                </div>
+                <div id="schemaFieldsStatus" style="font-size:0.8rem; color:var(--muted); margin-bottom:1rem; min-height:1.2rem;">Select an object to inspect its fields.</div>
+                
+                <div style="overflow-x: auto; max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px;">
+                  <table style="width:100%; text-align:left; border-collapse:collapse; font-size:0.85rem;">
+                    <thead>
+                      <tr style="border-bottom:1px solid var(--border); color:var(--mode-accent); background: var(--surface2);">
+                        <th style="padding:0.75rem 0.5rem; font-weight:500;">Field API Name</th>
+                        <th style="padding:0.75rem 0.5rem; font-weight:500;">Label</th>
+                        <th style="padding:0.75rem 0.5rem; font-weight:500;">Type</th>
+                        <th style="padding:0.75rem 0.5rem; font-weight:500; text-align:right;">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="schemaTableBody">
+                      <tr><td colspan="4" style="text-align:center; padding:1.5rem; color:var(--muted);">Select an object and click Inspect Object to list fields.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="submit-wrap">
+              <button type="submit" class="submit-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                <span id="btn-label">Run Automation</span>
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </main>
+
+      <!-- RIGHT SIDEBAR (AI Copilot & Execution Console stacked) -->
+      <aside class="right-sidebar collapsed" id="rightSidebar">
+        <!-- AI Copilot Card -->
+        <div class="copilot-card">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--mode-accent);"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+              AI Copilot
+            </div>
+            <div class="panel-actions">
+              <button type="button" class="panel-btn mobile-only-close" onclick="toggleRightSidebar()" style="display:none; font-size:1.4rem; padding:0 4px; line-height:1; background:transparent; border:none; color:var(--muted); cursor:pointer;">&times;</button>
+              <span class="panel-badge">Gemini Flash</span>
+            </div>
+          </div>
+          <div class="copilot-embedded-body">
+            <div class="field" style="margin-bottom:0.5rem;">
+              <label for="copilotPrompt" style="font-size:0.75rem;">Describe standard/custom fields or validation rules to generate:</label>
+              <textarea id="copilotPrompt" placeholder="e.g. Create a text field called 'VAT Number' with length 20 on Account..." style="min-height: 60px; font-size: 0.8rem;"></textarea>
+            </div>
+            <button type="button" class="save-btn" id="copilotGenBtn" onclick="runCopilotAI()" style="width: 100%; font-weight: bold; padding: 0.45rem; display:flex; align-items:center; justify-content:center; gap:6px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+              Generate Operations
+            </button>
+            <div id="copilotStatus" style="font-size:0.7rem; color:var(--muted); text-align:center; margin-top:2px;"></div>
+            
+            <div id="copilotStagingArea" style="display:none; flex-direction:column; flex:1; overflow:hidden; margin-top:0.5rem;">
+              <div class="section-label" style="font-size:0.6rem; margin-bottom:0.4rem; text-transform:uppercase;">Staged Operations</div>
+              <div id="copilotStagingItems" style="flex:1; overflow-y:auto; margin-bottom: 0.5rem; padding-right:4px;"></div>
+              <button type="button" class="submit-btn" style="padding: 0.5rem; font-size: 0.8rem;" onclick="addStagedItemsToAutomator()">
+                Load Selected Operations
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Execution Console Card -->
+        <div class="console-sidebar-card">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="spinner" id="consoleSpinner" style="display:none; width:12px; height:12px; border-width:1.5px; border-top-color:#fff; margin-right:6px;"></span>
+              <span id="consoleTitle">Execution Console</span>
+            </div>
+            <div class="panel-actions">
+              <button type="button" class="panel-btn mobile-only-close" onclick="toggleRightSidebar()" style="display:none; font-size:1.4rem; padding:0 4px; line-height:1; background:transparent; border:none; color:var(--muted); cursor:pointer;">&times;</button>
+              <span class="panel-badge" style="background:rgba(245,158,11,0.15); color:#f59e0b;" id="consoleProgressText">Idle</span>
+            </div>
+          </div>
+          <div class="console-embedded-body">
+            <div class="console-progress-bar-wrap">
+              <div class="console-progress-bar" id="consoleProgressBar" style="width: 0%;"></div>
+            </div>
+            <div class="console-terminal" id="consoleTerminal">
+              <div class="terminal-line system">Console ready. Start an automation task to see outputs.</div>
+            </div>
+            <div class="console-embedded-actions" style="margin-top:0.5rem;">
+              <button type="button" class="save-btn" id="consolePauseBtn" onclick="toggleConsolePause()" style="display:none; padding: 0.35rem 0.75rem; font-size:0.75rem;">Pause</button>
+              <button type="button" class="save-btn" id="consoleCancelBtn" onclick="cancelConsoleQueue()" style="display:none; padding: 0.35rem 0.75rem; font-size:0.75rem; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444;">Cancel</button>
+              <button type="button" class="save-btn" id="consoleCloseBtn" onclick="closeConsoleOverlay()" style="display:none; padding: 0.35rem 0.75rem; font-size:0.75rem;">Close</button>
+              <button type="button" class="save-btn" id="consoleDownloadLogBtn" onclick="exportConsoleQueueLog()" style="display:none; padding: 0.35rem 0.75rem; font-size:0.75rem; margin-left:6px;">Export Log</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Status Bar (Fixed Bottom) -->
+    <div class="status-bar">
+      <span class="dot"></span>
+      <span id="statusText">sandbox mode — ready</span>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- SECURITY TOKEN MODAL -->
+<div id="tokenModalOverlay">
+  <div class="token-modal-card">
+    <div class="token-modal-icon">🔑</div>
+    <div class="token-modal-title">Security Token Required</div>
+    <div class="token-modal-desc">
+      Salesforce requires a <strong>Security Token</strong> when accessing the API from outside trusted networks.
+      Enter your token below — it will be automatically appended to your password and the queue will retry.
+      <br><br>To get your token: <em>Salesforce → Settings → Reset My Security Token</em> (check your email).
+    </div>
+    <label class="token-modal-input-label" for="tokenModalInput">Security Token</label>
+    <input type="text" id="tokenModalInput" class="token-modal-input" placeholder="e.g. xKGh8QxvzA1abc123XYZ" autocomplete="off" spellcheck="false">
+    <div class="token-modal-hint">💡 The token will be appended to your password for this session only. Your saved credentials are not changed.</div>
+    <div class="token-modal-actions">
+      <button type="button" class="token-modal-cancel" id="tokenModalCancel">Skip &amp; Continue</button>
+      <button type="button" class="token-modal-submit" id="tokenModalSubmit">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg>
+        Apply &amp; Retry
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="./scripts/salesforce.js"></script>
+</body>
+</html>
+

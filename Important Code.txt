@@ -1,0 +1,6 @@
+Bypass for the Current Session Only
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+
+Permanently Enable Script Execution
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass

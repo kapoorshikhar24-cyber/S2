@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>UAT Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Styles (modular) -->
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/login.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/theme.css">
+</head>
+<body class="dark-theme">
+    <script>
+        // Global Error Handler to catch silent JS crashes
+        window.onerror = function(msg, url, line, col, error) {
+            var errorDiv = document.getElementById('global-error-banner');
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.id = 'global-error-banner';
+                errorDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#ef4444;z-index:99999;cursor:pointer;overflow:hidden;border-bottom:1px solid rgba(0,0,0,0.2);box-shadow:0 10px 30px rgba(0,0,0,0.5);';
+                errorDiv.style.height = 'auto';
+                document.body.appendChild(errorDiv);
+                
+                var msgDiv = document.createElement('div');
+                msgDiv.style.padding = '8px 16px';
+                msgDiv.style.fontSize = '12px';
+                msgDiv.style.color = '#fff';
+                msgDiv.style.fontFamily = 'monospace';
+                errorDiv.appendChild(msgDiv);
+                
+                var actionDiv = document.createElement('div');
+                actionDiv.style.padding = '4px 16px 12px';
+                actionDiv.innerHTML = '<button onclick="location.reload()" style="background:#fff;color:#ef4444;border:none;padding:4px 12px;border-radius:4px;font-size:11px;font-weight:bold;cursor:pointer;margin-right:10px;">RELOAD</button>' +
+                                     '<button onclick="if(window.UI){window.UI.switchSection(\'dashboard\')}else{this.parentElement.innerHTML+=\' (UI Not Ready)\'}" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid #fff;padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;">FORCE DASHBOARD</button>';
+                errorDiv.appendChild(actionDiv);
+                
+                errorDiv._msg = msgDiv;
+            }
+            errorDiv._msg.innerHTML = '⚠️ <b>JS Error:</b> ' + msg + ' <br><small style="opacity:0.8;">' + (url ? url.split("/").pop() : "unknown") + ':' + line + ':' + col + '</small>';
+            return false;
+        };
+
+        // Aggressive diagnostic tool: ensure main dashboard regions are always shown if they exist
+        window.stabilizeUI = function() {
+            console.log('[Diagnostic] Attempting UI stabilization...');
+            var dp = document.getElementById('dashboardPage');
+            if (dp && dp.style.display === 'none') {
+                 console.log('[Diagnostic] Forcing dashboard display');
+                 dp.style.display = 'block';
+            }
+            var top = document.getElementById('topHeader');
+            if (top) top.style.display = 'flex';
+        };
+
+    </script>
+
+    <!-- ==================== LOGIN PAGE ==================== -->
+    <div id="loginPage">
+        <div class="login-card">
+            <div class="logo">⚡</div>
+            <h1>Welcome Back</h1>
+            <p class="subtitle">Sign in to access your dashboard</p>
+
+            <div class="form-group">
+                <label for="loginUsername">Username</label>
+                <input type="text" id="loginUsername" placeholder="Enter your username" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <div class="password-wrapper">
+                    <input type="password" id="loginPassword" placeholder="Enter your password">
+                    <button type="button" class="toggle-password" id="togglePassword">👁️</button>
+                </div>
+            </div>
+
+            <button class="login-btn" id="loginBtn">Sign In</button>
+            <div class="error-msg" id="loginError"></div>
+        </div>
+    </div>
+
+    <!-- ==================== DASHBOARD PAGE ==================== -->
+    <div id="dashboardPage" style="display:none;">
+        <div class="dashboard-layout">
+
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+            <!-- Sidebar -->
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <div class="brand" id="sidebarBrand" title="Click to change logo (Admin)">
+                        <div class="brand-icon" id="brandIcon">⚡</div>
+                        <div class="brand-text" id="brandText">UAT Dashboard</div>
+                        <input type="file" id="adminLogoInput" accept="image/*" style="display:none;">
+                    </div>
+                    <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Toggle Sidebar">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                </div>
+
+                <div class="sidebar-nav">
+                    <div class="nav-label">Menu</div>
+                    <button class="nav-btn" id="navDashboard" style="display:none;" title="Dashboard">
+                        <span class="icon">🏠</span> Dashboard
+                    </button>
+                    <button class="nav-btn" id="navMom" style="display:none;" title="MOM Generator" onclick="window.open('/mom.html', '_blank')">
+                        <span class="icon">📝</span> MOM Generator
+                    </button>
+                    <button class="nav-btn" id="navSalesforce" style="display:none;" title="Salesforce Automator" onclick="window.open('/salesforce.html', '_blank')">
+                        <span class="icon">☁️</span> Salesforce Automator
+                    </button>
+                    <button class="nav-btn" id="navUsers" style="display:none;" title="User Management">
+                        <span class="icon">👥</span> User Management
+                    </button>
+                    <button class="nav-btn" id="navProjectMgmt" style="display:none;" title="Project">
+                        <span class="icon"><img src="/images/project-mgmt-icon.png" alt="Project" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;"></span> Project
+                    </button>
+                    <button class="nav-btn" id="navPicklists" style="display:none;" title="Picklists">
+                        <span class="icon">📋</span> Picklists
+                    </button>
+                    <button class="nav-btn" id="navNotifications" style="display:none;" title="User Acceptance Testing">
+                        <span class="icon"><img src="/images/gear-person-icon.png" alt="UAT" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;"></span> User Acceptance Testing
+                        <span class="notif-count" id="notifBadge" style="display:none;">0</span>
+                    </button>
+                    <button class="nav-btn" id="navImages" style="display:none;" title="Image &amp; Remarks">
+                        <span class="icon"><img src="/images/gear-person-icon.png" alt="Image & Remarks" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;"></span> Image &amp; Remarks
+                    </button>
+                    <button class="nav-btn" id="navFiles" style="display:none;" title="Shared Files">
+                        <span class="icon">📂</span> Shared Files
+                    </button>
+                    <button class="nav-btn" id="navLoginLogs" title="Login Activity" style="display:none;">
+                        <span class="icon">🕒</span> Login Activity
+                    </button>
+                </div>
+
+                <div class="sidebar-footer">
+                    <div class="user-info">
+                        <div class="user-avatar" id="sidebarAvatar" title="Profile"></div>
+                        <div class="user-details">
+                            <div class="user-name" id="sidebarName"></div>
+                            <div class="user-role" id="sidebarRole"></div>
+                        </div>
+                    </div>
+                    <button class="logout-btn" id="logoutBtn" title="Sign Out">
+                        <span>🚪</span> Sign Out
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <button class="mobile-toggle" id="mobileToggle">☰</button>
+
+                <!-- Top Header -->
+                <div class="top-header" id="topHeader" style="display:none;">
+                    <button class="theme-toggle" id="themeToggle" title="Toggle Theme">🌞</button>
+                    <div class="bell-wrapper">
+                        <button class="bell-btn" id="bellBtn">
+                            🔔
+                            <span class="bell-badge" id="bellBadge" style="display:none;">0</span>
+                        </button>
+                        <div class="bell-dropdown" id="bellDropdown">
+                            <div class="bell-dropdown-header">
+                                <span>Notifications</span>
+                                <button class="btn-mark-read" id="bellMarkAllBtn" style="display:none;">Mark all read</button>
+                            </div>
+                            <div class="bell-dropdown-body" id="bellDropdownBody">
+                                <div class="bell-dropdown-empty bell-empty">No notifications yet</div>
+                            </div>
+                            <div class="bell-dropdown-footer">
+                                <button class="btn-mark-read" style="font-size:12px;width:100%;justify-content:center;" onclick="window.UI.switchSection('notifications'); window.Notifications.closeBellDropdown();">View All Submissions →</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== DASHBOARD HOME ===== -->
+                <div class="section" id="sectionDashboard">
+                    <!-- Hero Section for Branded Experience -->
+                    <div id="dashboardHero" class="card hero-card" style="display:none; margin-bottom: 24px; padding: 40px; background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(139,92,246,0.1) 100%); border: 1px solid rgba(99,102,241,0.2); position: relative; overflow: hidden;">
+                        <div class="hero-content" style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 30px;">
+                            <div style="flex: 1;">
+                                <div style="margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <div id="heroRoleBadge" class="type-badge external">Client Access</div>
+                                    <div id="heroTimelineBadge" class="type-badge" style="display:none; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);"></div>
+                                </div>
+                                <h1 id="heroTitle" style="font-size: 32px; font-weight: 800; margin-bottom: 8px; color: #fff;">Welcome Back</h1>
+                                <p id="heroSubtext" style="font-size: 16px; color: rgba(255,255,255,0.7); max-width: 500px; line-height: 1.6;">Overview of your project UAT status and reports.</p>
+                            </div>
+                            <div id="heroLogoContainer" style="flex-shrink: 0; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; min-width: 140px; min-height: 140px;">
+                                <!-- Logo injected here -->
+                            </div>
+                        </div>
+                        <!-- Abstract Background Decoration -->
+                        <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%); border-radius: 50%; z-index: 1;"></div>
+                    </div>
+
+                    <div class="page-header" id="dashboardStandardHeader" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h2>🏠 Dashboard <span class="role-badge" id="dashboardRoleBadge">Admin</span></h2>
+                            <p id="dashboardSubtext">Overview of your activity and project status</p>
+                        </div>
+                        <div id="dashboardProjectFilterWrapper" style="display: none;">
+                            <div class="multiselect-container single-select" id="dashProjectDropdown" style="width: 200px;">
+                                <div class="multiselect-trigger" id="dashProjectTrigger">
+                                    <div class="multiselect-chips" id="dashProjectChips">
+                                        <span class="placeholder-text">All Projects</span>
+                                    </div>
+                                    <span class="chevron">▼</span>
+                                </div>
+                                <div class="multiselect-dropdown" id="dashProjectMenu">
+                                    <div class="multiselect-search">
+                                        <input type="text" id="dashProjectSearch" placeholder="Search project..." autocomplete="off">
+                                    </div>
+                                    <div class="multiselect-list" id="dashProjectList">
+                                        <!-- Projects injected here -->
+                                    </div>
+                                </div>
+                                <input type="hidden" id="dashboardProjectFilter" value="">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="dashboardStats">
+                        <div style="color:var(--text-muted);font-size:14px;">Loading dashboard overview…</div>
+                    </div>
+
+                    <!-- Dashboard Visualizations -->
+                    <div id="dashboardCharts" style="margin-top: 2rem; display: none;">
+                        <div class="card" style="margin:0; padding:1.5rem; display:flex; flex-direction:column; gap:1.5rem;">
+                            <div style="font-size:1rem; font-weight:700; display:flex; align-items:center; gap:8px;">📊 Status Distribution</div>
+                            <div style="width:100%; max-width:500px; height:250px; margin: 0 auto; position: relative;">
+                                <canvas id="statusChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== USER MANAGEMENT (Admin) ===== -->
+                <div class="section" id="sectionUsers">
+                    <div class="page-header">
+                        <h2>User Management <span class="role-badge admin">Admin</span></h2>
+                        <p>Add, edit, and manage users in the system</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title" id="userCardTitle">
+                            <div class="card-title-text"><span class="plus-sign">➕</span> Add New User</div>
+                            <div class="card-header-actions">
+                                <button class="btn-secondary" id="csvImportBtn" style="background:rgba(34,197,94,0.2) !important; border:1px solid rgba(34,197,94,0.3) !important; color:#22c55e !important; height:32px; font-size:12px; font-weight:bold;">📥 Import CSV</button>
+                                <button class="btn-secondary" id="csvTemplateBtn" style="background:rgba(239,68,68,0.2) !important; border:1px solid rgba(239,68,68,0.3) !important; color:#ef4444 !important; height:32px; font-size:12px; font-weight:bold;">📄 Download Format</button>
+                                <input type="file" id="csvUserInput" accept=".csv" style="display:none;">
+                            </div>
+                        </div>
+
+                        <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:20px;">
+                            <!-- Profile Image Section -->
+                            <div id="userAvatarContainer" style="flex-shrink:0;">
+                                <div class="user-avatar-upload" id="userAvatarArea">
+                                    <div id="userAvatarPlaceholder">
+                                        <div style="font-size:24px; margin-bottom:4px;">👤</div>
+                                        <div style="font-size:10px; color:var(--text-muted);">UPLOAD</div>
+                                    </div>
+                                    <img id="userAvatarPreview" style="display:none; width:100%; height:100%; object-fit:cover;">
+                                    <input type="file" id="userAvatarInput" accept="image/*" style="display:none;">
+                                </div>
+                            </div>
+
+                            <div style="flex:1; min-width:300px;">
+                                <div class="input-row row-horizontal">
+                            <div class="input-group compact">
+                                <label>User Type</label>
+                                <select id="userType">
+                                    <option value="">-- Select Type --</option>
+                                    <option value="internal">Employee</option>
+                                    <option value="external">Client</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Full Name</label>
+                                <input type="text" id="userFullName" placeholder="Enter full name">
+                            </div>
+                            <div class="input-group">
+                                <label>Email <span style="color:#888; font-size:10px;">(Username)</span></label>
+                                <input type="email" id="userName" placeholder="e.g. john.doe@company.com" autocomplete="off">
+                                <small id="userNameHint" style="color:#ef4444; font-size:11px; margin-top:4px; display:none;">&#9888; Enter a valid email address</small>
+                            </div>
+                            <div class="input-group">
+                                <label>Password <span style="color:#888; font-size:10px;">(Min. 8 Chars)</span></label>
+                                <input type="text" id="userPassword" placeholder="Min. 8 characters">
+                                <small id="userPasswordHint" style="color:#ef4444; font-size:11px; margin-top:4px; display:none;">&#9888; Password must be at least 8 characters</small>
+                            </div>
+                            <div class="input-group" id="userDesignationGroup">
+                                <label>Designation</label>
+                                <select id="userDesignationSelect">
+                                    <option value="">-- Select Designation --</option>
+                                    <!-- Populated dynamically -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="dynamicFieldsRow" class="input-row row-horizontal" style="margin-top:16px; display:none;">
+                            <div class="input-group" id="projectGroup">
+                                <label>Project <span style="color:#ef4444">*</span></label>
+                                <!-- Single-select Project Chip Dropdown -->
+                                <div class="multiselect-container" id="userProjectMultiselect">
+                                    <div class="multiselect-trigger" id="userProjectDropdownTrigger">
+                                        <div class="multiselect-chips" id="userProjectChips">
+                                            <span class="placeholder-text" id="userProjectPlaceholder">Search / Select project...</span>
+                                        </div>
+                                        <span class="chevron">▼</span>
+                                    </div>
+                                    <div class="multiselect-dropdown" id="userProjectDropdownMenu">
+                                        <div class="multiselect-search">
+                                            <input type="text" id="userProjectSearch" placeholder="Search projects..." autocomplete="off">
+                                        </div>
+                                        <div class="multiselect-list" id="userProjectList">
+                                            <!-- Project items generated here -->
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Hidden input to carry the selected value -->
+                                <input type="hidden" id="userProject">
+                                <div style="display:flex; justify-content:flex-end; margin-top:6px;">
+                                    <button type="button" class="btn-primary" id="openQuickProjectBtn" title="Quick Add Project" style="padding:0 12px; height:34px; font-size:12px; gap:4px;"><span class="plus-sign">➕</span> New Project</button>
+                                </div>
+                            </div>
+                            <div class="input-group" id="assignedEmployeeGroup">
+                                <label>Assigned Employee</label>
+                                <select id="userAssignedEmployee">
+                                    <option value="">-- None --</option>
+                                    <!-- Populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="input-group" id="userRolesGroup">
+                                <label>Roles & Permissions</label>
+                                <div style="display:flex; gap:16px; margin-top:8px;">
+                                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:normal;" id="userIsOwnerLabel">
+                                        <input type="checkbox" id="userIsOwner" style="width:16px; height:16px;"> Owner
+                                    </label>
+                                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:normal;" id="userIsPOCLabel">
+                                        <input type="checkbox" id="userIsPOC" style="width:16px; height:16px;"> POC
+                                    </label>
+                                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:normal; display:none;" id="canManageGroup">
+                                        <input type="checkbox" id="canManageSubUsers" style="width:16px; height:16px;"> Lead
+                                    </label>
+                                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:normal;" id="allowProfileGroup">
+                                        <input type="checkbox" id="allowProfileImage" style="width:16px; height:16px;"> Provide Profile Image
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden but functional fields -->
+                        <select id="userStatus" style="display:none;">
+                            <option value="active" selected>Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+
+                        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+                            <button class="btn-primary" id="userSaveBtn"><span class="plus-sign">➕</span> Add User</button>
+                            <button class="btn-primary" id="userUpdateBtn" style="display:none;">💾 Update User</button>
+                            <button class="btn-danger" id="userCancelBtn" style="display:none;">❌ Cancel</button>
+                        </div>
+                        </div> <!-- Closes flex:1 min-width:300px -->
+                        </div> <!-- Closes display:flex gap:24px -->
+                    </div> <!-- Closes card -->
+
+
+                    <div class="card">
+                        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <span>📋 All Users</span>
+                            <input type="text" id="userSearchInput" placeholder="Search by username..."
+                                style="padding:6px 12px; border:1px solid rgba(255,255,255,0.1); border-radius:6px; background:rgba(0,0,0,0.2); color:#fff; font-size:13px; font-family:inherit; width:220px; outline:none;">
+                        </div>
+                        <div class="table-view">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th><th>Full Name</th><th>Username</th><th>Type</th>
+                                        <th>Designation</th><th>Project</th><th>Status</th><th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="empty-state" id="emptyUsers">
+                            <div class="empty-icon">👥</div>
+                            <p>No users added yet.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== PROJECT MANAGEMENT (Admin) ===== -->
+                <div class="section" id="sectionProjectMgmt">
+                    <div class="page-header">
+                        <h2 style="display:flex;align-items:center;gap:10px;">
+                            <img src="/images/project-mgmt-icon.png" alt="Project" style="width:36px;height:36px;object-fit:contain;">
+                            Projects <span class="role-badge admin">Admin</span>
+                        </h2>
+                        <p>Create and configure projects, assign employees and set SLA targets</p>
+                    </div>
+
+                    <!-- ── Add / Edit Project Form ─────────────────────────── -->
+                    <div class="card" style="padding:2rem; margin-bottom:1.5rem;">
+                        <div class="card-title" id="projectCardTitle" style="margin-bottom:1.5rem; font-size:1.1rem;">
+                            ➕ New Project
+                        </div>
+
+                        <!-- Row 1: Name + Dates (SLA & Client Access removed — managed in Detailed View) -->
+                        <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:1.25rem; align-items:start; margin-bottom:1.25rem;">
+                            <div class="input-group" style="margin:0;">
+                                <label>Project Name <span style="color:#ef4444">*</span></label>
+                                <input type="text" id="newProjectName" placeholder="e.g. Client Portal v2"
+                                    oninput="var p=this.selectionStart;this.value=this.value.replace(/\b\w/g,function(c){return c.toUpperCase();});this.setSelectionRange(p,p);">
+                            </div>
+                            <div class="input-group" style="margin:0;">
+                                <label>Start Date</label>
+                                <input type="date" id="newProjectStartDate">
+                            </div>
+                            <div class="input-group" style="margin:0;">
+                                <label>End Date</label>
+                                <input type="date" id="newProjectEndDate">
+                            </div>
+                        </div>
+
+                        <!-- Row 2: Assign Employees + Brand Image -->
+                        <div style="display:grid; grid-template-columns:2fr 1fr; gap:1.25rem; align-items:start; margin-bottom:1.5rem;">
+                            <div class="input-group" style="margin:0; position:relative; z-index:50;">
+                                <label>Assign Employees</label>
+                                <div class="multiselect-container" id="projectUserMultiselect">
+                                    <div class="multiselect-trigger" id="projectUserDropdownTrigger">
+                                        <div class="multiselect-chips" id="projectSelectedUsersChips">
+                                            <span class="placeholder-text" id="projectUserPlaceholder">Search / Select Employees...</span>
+                                        </div>
+                                        <span class="chevron">▼</span>
+                                    </div>
+                                    <div class="multiselect-dropdown" id="projectUserDropdownMenu">
+                                        <div class="multiselect-search">
+                                            <input type="text" id="projectUserSearch" placeholder="Search employees..." autocomplete="off">
+                                        </div>
+                                        <div class="multiselect-list" id="newProjectUsers"></div>
+                                    </div>
+                                </div>
+                                <small style="color:#888; font-size:11px; margin-top:4px; display:block;">Internal &amp; external members for this project</small>
+                            </div>
+
+                            <div class="input-group" style="margin:0;">
+                                <label>Brand Logo (Optional)</label>
+                                <div class="upload-area" id="projectUploadArea"
+                                    style="min-height:72px; padding:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                                    <div id="projectUploadPlaceholder" style="text-align:center;">
+                                        <div style="font-size:1.4rem;">📷</div>
+                                        <div style="font-size:11px; color:#888; margin-top:2px;">Click or drag to upload</div>
+                                    </div>
+                                    <img id="projectImagePreview" class="image-preview" style="display:none; max-height:52px; object-fit:contain;">
+                                    <input type="file" id="projectImageInput" accept="image/*" style="display:none;">
+                                </div>
+                                <small style="color:#888; font-size:11px; margin-top:4px; display:block;">SLA &amp; Client Access managed in Detailed View ↓</small>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid rgba(255,255,255,0.06); padding-top:1.25rem;">
+                            <button class="btn-danger"   id="projectCancelBtn" style="display:none;">✕ Cancel</button>
+                            <button class="btn-primary"  id="projectUpdateBtn" style="display:none;">💾 Update Project</button>
+                            <button class="btn-primary"  id="projectSaveBtn">➕ Add Project</button>
+                        </div>
+                    </div>
+
+                    <!-- ── All Projects (Compact + Detailed) ──────────────── -->
+                    <div class="card" style="padding:1.5rem;">
+                        <!-- Header row: title + badge + view toggle -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:10px;">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <div class="card-title" style="margin:0;">📋 All Projects</div>
+                                <span id="projectCountBadge" style="font-size:12px; color:#888; background:rgba(255,255,255,0.05);
+                                    padding:3px 12px; border-radius:20px; border:1px solid rgba(255,255,255,0.08);"></span>
+                            </div>
+                            <!-- View Toggle -->
+                            <div class="project-view-toggle" id="projectViewToggle">
+                                <button class="project-view-btn active" id="btnCompactView"
+                                    onclick="Projects.switchView('compact')" title="Compact Card View">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                                    Compact
+                                </button>
+                                <button class="project-view-btn" id="btnDetailedView"
+                                    onclick="Projects.switchView('detailed')" title="Detailed Table View">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                                    Detailed
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- COMPACT VIEW: Card Grid -->
+                        <div id="projectCardsGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:1rem;"></div>
+
+                        <!-- DETAILED VIEW: Table -->
+                        <div id="projectDetailedView" style="display:none;">
+                            <div class="table-view project-detail-table-wrap">
+                                <table class="data-table project-detail-table" id="projectDetailTable">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:40px;">#</th>
+                                            <th>Project Name</th>
+                                            <th>Timeline</th>
+                                            <th style="width:160px;">SLA (hrs)</th>
+                                            <th style="width:70px;">Logo</th>
+                                            <th style="width:130px;">External Access</th>
+                                            <th>Assigned Employees</th>
+                                            <th style="width:100px;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="projectDetailTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="empty-state" id="emptyProjects" style="display:none;">
+                            <div class="empty-icon">📁</div>
+                            <p>No projects added yet. Create your first project above.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== PICKLIST MANAGEMENT (Admin) ===== -->
+                <div class="section" id="sectionPicklists">
+                    <div class="page-header">
+                        <h2>Picklists <span class="role-badge admin">Admin</span></h2>
+                        <p>Manage dynamic dropdown values used across the system</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">⚙️ Manage Picklists</div>
+                        <div class="input-row" style="align-items:flex-start;">
+                            <div class="input-group" style="flex: 1; max-width: 250px;">
+                                <label>Select Picklist</label>
+                                <select id="picklistSelect">
+                                    <option value="">-- Select --</option>
+                                    <option value="Modules" selected>Modules</option>
+                                    <option value="Designations">Designations</option>
+                                </select>
+                            </div>
+                            <div class="input-group" style="flex: 2;">
+                                <label>Values <span style="color:#888; font-size:10px;">(Drag items to reorder)</span></label>
+                                <div id="picklistValuesContainer" class="picklist-container" style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; min-height: 200px;">
+                                    <!-- Rendered dynamically -->
+                                </div>
+                                <div style="display:flex; gap:10px; margin-top:10px;">
+                                    <input type="text" id="newPicklistValue" placeholder="New value..." style="flex:1;">
+                                    <button class="btn-primary" id="addPicklistValueBtn">➕ Add</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== UAT / NOTIFICATIONS (Admin + Managers) ===== -->
+                <div class="section" id="sectionNotifications">
+                    <div class="page-header">
+                        <h2 style="display:flex;align-items:center;gap:10px;">
+                            <img src="/images/gear-person-icon.png" alt="UAT" style="width:36px;height:36px;object-fit:contain;">
+                            User Acceptance Testing <span class="role-badge admin">Admin</span>
+                        </h2>
+                        <p>View and manage records submitted by users</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title" style="display:flex; flex-direction:column; align-items:stretch; gap:12px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px;">
+                                <span>📬 User Submissions</span>
+                                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                                    <button class="btn-mark-read" id="markAllReadBtn" style="display:none;">✅ Mark All Read</button>
+                                    <button class="btn-secondary" id="exportCsvBtn" style="font-size:12px; padding:5px 12px;">📥 Export CSV</button>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                <input type="text" id="notifDateSearch" placeholder="Search by Date..."
+                                    style="flex:1; min-width:160px; padding:6px 12px; border:1px solid rgba(255,255,255,0.1); border-radius:6px; background:rgba(0,0,0,0.2); color:#fff; font-size:13px; font-family:inherit; outline:none;">
+                                <input type="text" id="notifGeneralSearch" placeholder="Search by Project, User, Module, Remark..."
+                                    style="flex:2; min-width:160px; padding:6px 12px; border:1px solid rgba(255,255,255,0.1); border-radius:6px; background:rgba(0,0,0,0.2); color:#fff; font-size:13px; font-family:inherit; outline:none;">
+                                <select id="notifProjectFilter"
+                                    style="padding:6px 12px; border:1px solid rgba(255,255,255,0.1); border-radius:6px; background:rgba(0,0,0,0.2); color:#fff; font-size:13px; font-family:inherit; outline:none;">
+                                    <option value="">All Projects</option>
+                                </select>
+                                <select id="notifStatusFilter"
+                                    style="padding:6px 12px; border:1px solid rgba(255,255,255,0.1); border-radius:6px; background:rgba(0,0,0,0.2); color:#fff; font-size:13px; font-family:inherit; outline:none;">
+                                    <option value="">All Statuses</option>
+                                    <option value="backlog">Backlog</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="in progress">In Progress</option>
+                                    <option value="solved">Solved</option>
+                                    <option value="closed">Closed</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="table-view">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th><th>Image</th><th>Project</th><th>Page/Module</th>
+                                        <th>Remarks</th><th>Raised By</th><th>Created</th><th>Status</th>
+                                        <th>Solved Date</th><th>🕐 SLA Status</th><th>CCC Comments</th><th>Customer Status</th><th>Customer Comment</th><th>💬 Thread</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="notifTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="empty-state" id="emptyNotifs">
+                            <div class="empty-icon">🔔</div>
+                            <p>No submissions yet.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== IMAGE & REMARKS (External Users) ===== -->
+                <div class="section" id="sectionImages">
+                    <div class="page-header">
+                        <h2 style="display:flex;align-items:center;gap:10px;">
+                            <img src="/images/gear-person-icon.png" alt="Image & Remarks" style="width:36px;height:36px;object-fit:contain;">
+                            Image &amp; Remarks <span class="role-badge user">User</span>
+                        </h2>
+                        <p>Upload images, select a page/module, and add your remarks</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">📤 New Entry</div>
+
+                        <div class="input-row" style="margin-bottom:16px;">
+                            <div class="input-group" style="flex:1;">
+                                <label>Page / Module</label>
+                                <select id="pageModuleSelect">
+                                    <option value="">-- Select Page / Module --</option>
+                                    <!-- Populated dynamically from Picklists State -->
+                                </select>
+                            </div>
+                            <div class="input-group" id="customModuleGroup" style="flex:1; display:none;">
+                                <label>Custom Module Name</label>
+                                <input type="text" id="customModuleInput" placeholder="Type module name...">
+                            </div>
+                        </div>
+
+                        <div class="input-row" style="align-items:stretch;">
+                            <div class="input-group" style="flex:1;">
+                                <label>Upload Image</label>
+                                <div class="upload-area" id="uploadArea" style="min-height:90px; padding:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-direction:column;">
+                                    <div id="uploadPlaceholder" style="text-align:center;">
+                                        <div class="upload-icon" style="font-size:22px; margin-bottom:4px;">📷</div>
+                                        <div class="upload-text" style="font-size:12px;">Click or drag to <span>upload image</span></div>
+                                        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Max 3MB · JPG, PNG, GIF, WebP</div>
+                                    </div>
+                                    <img id="imagePreview" class="image-preview" style="display:none; max-height:60px; object-fit:contain;">
+                                    <input type="file" id="imageInput" accept="image/*" style="display:none;">
+                                </div>
+                            </div>
+                            <div class="input-group" style="flex:1;">
+                                <label>Remark</label>
+                                <div class="remark-editor-container">
+                                    <div class="editor-toolbar">
+                                        <button class="editor-btn" type="button" onclick="Entries.execCommand('bold')" title="Bold (Ctrl+B)"><b>B</b></button>
+                                        <div class="editor-divider"></div>
+                                        <button class="editor-btn" type="button" onclick="Entries.execCommand('justifyLeft')" title="Align Left (Ctrl+L)">⬅️</button>
+                                        <button class="editor-btn" type="button" onclick="Entries.execCommand('justifyCenter')" title="Align Center (Ctrl+E)">↔️</button>
+                                        <button class="editor-btn" type="button" onclick="Entries.execCommand('justifyRight')" title="Align Right (Ctrl+R)">➡️</button>
+                                        <div class="editor-divider"></div>
+                                        <button class="editor-btn" type="button" onclick="Entries.execCommand('insertUnorderedList')" title="Bullet List (Ctrl+Shift+L)">LIST</button>
+                                    </div>
+                                    <div id="remarkEditor" class="remark-editable" contenteditable="true" data-placeholder="Enter your remark or comment here..."></div>
+                                </div>
+                                <button class="btn-primary" id="submitEntryBtn" style="width:100%;">📤 Submit Entry</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+                            <span>📁 My Entries</span>
+                            <button class="btn-secondary" onclick="Entries.exportCSV()" style="font-size:12px;padding:5px 12px;">📥 Export CSV</button>
+                        </div>
+                        <div class="table-view">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th><th>Image</th><th>Page/Module</th><th>Remarks</th>
+                                        <th>Raised By</th><th>Created</th><th>Status</th><th>Solved Date</th>
+                                        <th>CCC Comments</th><th>Customer Status</th><th>Customer Comment</th><th>💬 Thread</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="entriesTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="empty-state" id="emptyEntries">
+                            <div class="empty-icon">🖼️</div>
+                            <p>No entries yet. Upload an image and add a remark above.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== SHARED FILES ===== -->
+                <div class="section" id="sectionFiles">
+                    <div class="page-header">
+                        <h2>📂 Shared Files <span class="role-badge" id="filesRoleBadge">User</span></h2>
+                        <p>Access and download project-related documents and shared resources</p>
+                    </div>
+
+                    <!-- Admin Upload Card (visible only to admins) -->
+                    <div class="card" id="adminFileUploadCard" style="display:none;">
+                        <div class="card-title">📤 Upload New File</div>
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>Select Project</label>
+                                <select id="fileProjectSelect">
+                                    <option value="Global">Global (Visible to all)</option>
+                                </select>
+                            </div>
+                            <div class="input-group" style="flex:2;">
+                                <label>File Upload</label>
+                                <div class="upload-area" id="fileUploadArea" style="min-height:80px; padding:15px; border-style:dashed;">
+                                    <div id="fileUploadPlaceholder">
+                                        <div class="upload-icon" style="font-size:24px;">📄</div>
+                                        <div class="upload-text" style="font-size:12px;">Click or drag to upload document</div>
+                                    </div>
+                                    <div id="fileUploadInfo" style="display:none; text-align:center;">
+                                        <div class="upload-icon" style="font-size:24px;">✅</div>
+                                        <span id="uploadedFileName" style="font-weight:600; color:var(--primary); font-size:14px;"></span>
+                                        <br><small id="uploadedFileSize" style="color:var(--text-muted);"></small>
+                                    </div>
+                                    <input type="file" id="fileInput" style="display:none;">
+                                </div>
+                            </div>
+                            <button class="btn-primary" id="fileUploadBtn" style="align-self:flex-end; margin-top:22px;">➕ Upload File</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <span>📋 Available Files</span>
+                            <input type="text" id="fileSearchInput" placeholder="Search files by name..."
+                                style="padding:6px 12px; border:1px solid rgba(255,255,255,0.1); border-radius:6px; background:rgba(0,0,0,0.2); color:#fff; font-size:13px; font-family:inherit; width:220px; outline:none;">
+                        </div>
+                        <div class="table-view">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th><th>File Name</th><th>Project</th><th>Size</th><th>Uploaded</th><th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="filesTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="empty-state" id="emptyFiles">
+                            <div class="empty-icon">📂</div>
+                            <p>No files shared yet.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== LOGIN LOGS ===== -->
+                <div class="section" id="sectionLoginLogs">
+                    <div class="page-header">
+                        <h2>Login Activity <span class="role-badge internal">Audit</span></h2>
+                        <p class="subtitle">Secure audit trail of user access and authentication events.</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title" style="justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                            <span>📈 Activity Overview</span>
+                            <div class="log-filters" id="loginLogFilters">
+                                <button class="filter-pill active" data-period="this-month">This Month</button>
+                                <button class="filter-pill" data-period="today">Today</button>
+                                <button class="filter-pill" data-period="last-month">Last Month</button>
+                            </div>
+                        </div>
+                        <div style="padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.06);">
+                            <div style="height: 250px; width: 100%; position: relative;">
+                                <canvas id="loginActivityChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="card-title" style="border-top: 1px solid rgba(255,255,255,0.06);">
+                            <span>🕒 Recent Logins</span>
+                        </div>
+                        <div class="table-view">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>User Name</th>
+                                        <th>Role</th>
+                                        <th>Project</th>
+                                        <th>Timestamp</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="loginLogsTableBody">
+                                    <!-- Dynamic Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /main-content -->
+        </div><!-- /dashboard-layout -->
+    </div><!-- /dashboardPage -->
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="image-modal">
+        <div class="card" style="width:100%; max-width:450px; margin:auto; background:rgba(26,26,46,0.95); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.1); box-shadow:0 20px 50px rgba(0,0,0,0.5);">
+            <div class="card-title" style="justify-content:space-between;">
+                <span>👤 My Profile</span>
+                <span id="closeProfileModal" style="cursor:pointer; font-size:20px; opacity:0.6;">&times;</span>
+            </div>
+            
+            <div style="display:flex; flex-direction:column; align-items:center; gap:20px; margin-bottom:24px;">
+                <div class="user-avatar-upload" id="profileAvatarArea" style="width:120px; height:120px; border-radius:50%;">
+                    <div id="profileAvatarPlaceholder">
+                        <div style="font-size:32px; margin-bottom:4px;">👤</div>
+                        <div style="font-size:10px; color:var(--text-muted);">UPLOAD</div>
+                    </div>
+                    <img id="profileAvatarPreview" style="display:none; width:100%; height:100%; object-fit:cover;">
+                    <input type="file" id="profileAvatarInput" accept="image/*" style="display:none;">
+                </div>
+                <div style="text-align:center;">
+                    <h3 id="profileModalName" style="margin:0; font-size:18px; color:#fff;">User Name</h3>
+                    <p id="profileModalRole" style="margin:4px 0 0; font-size:13px; color:var(--text-muted);">Role / Designation</p>
+                </div>
+            </div>
+
+            <div class="input-group" style="margin-bottom:16px;">
+                <label>Full Name</label>
+                <input type="text" id="profileFullName" placeholder="Enter your full name">
+            </div>
+
+            <div class="input-group" style="margin-bottom:16px;">
+                <label>Email (Username)</label>
+                <input type="email" id="profileEmail" placeholder="Enter your email" disabled>
+                <small style="color:#888; font-size:11px;">Username/Email cannot be changed.</small>
+            </div>
+
+            <div class="input-group" style="margin-bottom:24px;">
+                <label>New Password <span style="color:#888; font-size:10px;">(Leave blank to keep current)</span></label>
+                <input type="password" id="profilePassword" placeholder="Min. 8 characters">
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button class="btn-primary" id="saveProfileBtn" style="flex:1; justify-content:center;">💾 Save Profile</button>
+                <button class="btn-secondary" id="cancelProfileBtn" style="padding:0 20px;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="image-modal">
+        <span class="image-modal-close" id="imageModalClose">&times;</span>
+        <img class="image-modal-content" id="expandedImg" alt="Preview">
+    </div>
+
+    <!-- Quick Project Modal -->
+    <div id="quickProjectModal" class="image-modal">
+        <div class="card" style="width:100%; max-width:450px; margin:auto; background:rgba(26,26,46,0.95); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.1); box-shadow:0 20px 50px rgba(0,0,0,0.5);">
+            <div class="card-title" style="justify-content:space-between;">
+                <span>➕ Quick Add Project</span>
+                <span id="closeQuickProjectModal" style="cursor:pointer; font-size:20px; opacity:0.6;">&times;</span>
+            </div>
+            
+            <div class="input-group" style="margin-bottom:20px;">
+                <label>Project Name</label>
+                <input type="text" id="quickProjectName" placeholder="Enter project name..." style="width:100%;">
+            </div>
+
+            <div class="input-group" style="margin-bottom:24px;">
+                <label>Brand Logo (Optional)</label>
+                <div class="upload-area" id="quickProjectUploadArea" style="min-height:100px; padding:15px;">
+                    <div id="quickProjectUploadPlaceholder">
+                        <div class="upload-icon" style="font-size:24px;">📷</div>
+                        <div class="upload-text" style="font-size:12px;">Click to upload logo</div>
+                    </div>
+                    <img id="quickProjectImagePreview" class="image-preview" style="display:none; max-height:60px;">
+                    <input type="file" id="quickProjectImageInput" accept="image/*" style="display:none;">
+                </div>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button class="btn-primary" id="saveQuickProjectBtn" style="flex:1; justify-content:center;">💾 Save Project</button>
+                <button class="btn-secondary" id="cancelQuickProjectBtn" style="padding:0 20px;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comments / Chat UI Modal -->
+    <div id="commentsModal" class="image-modal">
+        <div class="card chat-modal-card">
+            <!-- Header -->
+            <div class="chat-header">
+                <div class="chat-title">
+                    <span>💬 Discussion Thread</span>
+                    <span class="badge" id="chatTotalCount">0</span>
+                </div>
+                <div class="chat-tabs">
+                    <button class="chat-tab active" data-filter="All">All</button>
+                    <button class="chat-tab" data-filter="CCC">CCC</button>
+                    <button class="chat-tab" data-filter="Customer">Client</button>
+                </div>
+                <span id="closeCommentsModal" class="chat-close">&times;</span>
+            </div>
+
+            <!-- Body -->
+            <div class="chat-body" id="chatBodyContainer">
+                <!-- Chat bubbles injected here dynamically -->
+            </div>
+
+            <!-- Footer / Input -->
+            <div class="chat-footer">
+                <div class="chat-type-toggle" id="chatTypeToggleContainer">
+                    <button class="chat-type-btn active" data-type="CCC">CCC Internal</button>
+                    <button class="chat-type-btn" data-type="Customer">Customer</button>
+                </div>
+                <div class="chat-input-row">
+                    <textarea id="chatInputText" class="chat-textarea" placeholder="Type a comment..." rows="1"></textarea>
+                    <button class="btn-primary" id="chatSendBtn" style="padding: 0 16px;">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript — load in dependency order -->
+    <script src="/js/utils.js"></script>
+    <script src="/js/state.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/profile.js"></script>
+    <script src="/js/users.js"></script>
+    <script src="/js/projects.js"></script>
+    <script src="/js/entries.js"></script>
+    <script src="/js/notifications.js"></script>
+    <script src="/js/files.js"></script>
+    <script src="/js/settings.js"></script>
+    <script src="/js/loginLogs.js"></script>
+    <script src="/js/picklists.js"></script>
+    <script src="/js/app.js"></script>
+
+</body>
+</html>
