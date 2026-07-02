@@ -437,6 +437,7 @@
                         <div class="option" data-value="Picklist">Picklist</div>
                         <div class="option" data-value="Text">Text</div>
                         <div class="option" data-value="Lookup">Lookup</div>
+                        <div class="option" data-value="Formula">Formula</div>
                       </div>
                     </div>
                     <input type="hidden" id="dataType" class="single-req">
@@ -570,6 +571,40 @@
                     <div class="field">
                       <label>API Name</label>
                       <input type="text" name="Lookup-FieldName" placeholder="Related_Account__c" style="font-family:var(--font-mono);font-size:0.83rem;">
+                    </div>
+                  </div>
+                  <!-- Formula -->
+                  <div id="fields-Formula" class="dynamic-fields">
+                    <div class="divider"></div>
+                    <div class="field">
+                      <label>Field Label</label>
+                      <input type="text" name="Formula-FieldLabel" placeholder="e.g. Total Commission">
+                    </div>
+                    <div class="row">
+                      <div class="field">
+                        <label>Formula Return Type</label>
+                        <select name="Formula-FormulaType" style="width: 100%; padding: 0.55rem; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border-md); color: var(--text);">
+                          <option value="Checkbox">Checkbox</option>
+                          <option value="Currency">Currency</option>
+                          <option value="Date">Date</option>
+                          <option value="Date/Time">Date/Time</option>
+                          <option value="Number">Number</option>
+                          <option value="Percent">Percent</option>
+                          <option value="Text" selected>Text</option>
+                        </select>
+                      </div>
+                      <div class="field">
+                        <label>Decimal Places</label>
+                        <input type="number" name="Formula-DecimalPlaces" value="2" min="0" max="18">
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label>Formula Expression</label>
+                      <textarea name="Formula-Formula" rows="4" placeholder="e.g. Amount * 0.15" style="width:100%; padding:0.55rem; border-radius:8px; background:var(--surface2); border:1px solid var(--border-md); color:var(--text); font-family:var(--font-mono); resize:vertical;"></textarea>
+                    </div>
+                    <div class="field">
+                      <label>API Name</label>
+                      <input type="text" name="Formula-FieldName" placeholder="Total_Commission__c" style="font-family:var(--font-mono);font-size:0.83rem;">
                     </div>
                   </div>
                 </div>

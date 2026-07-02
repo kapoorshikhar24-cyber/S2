@@ -1528,7 +1528,8 @@
 
     // 2. Detect Data Type from description
     let detectedType = 'Text';
-    if (/\bpicklist\b|\bstatus\b|\bstage\b|\bpickval\b/i.test(desc)) detectedType = 'Picklist';
+    if (/\bformula\b/i.test(descLower)) detectedType = 'Formula';
+    else if (/\bpicklist\b|\bstatus\b|\bstage\b|\bpickval\b/i.test(descLower)) detectedType = 'Picklist';
     else if (/\bdate\b|\bdue\b|\bdeadline\b|\bstart\b|\bend\b/i.test(desc)) detectedType = 'Date';
     else if (/\bnumber\b|\bcount\b|\bquantity\b|\bdays?\b|\beff?ort\b/i.test(desc)) detectedType = 'Number';
     else if (/\bcurren?cy\b|\bamount\b|\bprice\b|\bcost\b|\bpayment\b/i.test(desc)) detectedType = 'Currency';
@@ -1820,7 +1821,7 @@
       const singleData = { objectName: document.getElementById('objectName').value, dataType: dt, fieldDetails: {} };
       const activeSection = document.getElementById(`fields-${dt}`);
       if (activeSection) {
-        activeSection.querySelectorAll('input,textarea').forEach(i => {
+        activeSection.querySelectorAll('input,textarea,select').forEach(i => {
           singleData.fieldDetails[i.name.split('-')[1]] = i.value;
         });
       }
@@ -1835,7 +1836,7 @@
       };
       const activeSection = document.getElementById(`changeFields-${dt}`);
       if (activeSection) {
-        activeSection.querySelectorAll('input,textarea').forEach(i => {
+        activeSection.querySelectorAll('input,textarea,select').forEach(i => {
           changeData.fieldDetails[i.name.split('-')[1]] = i.value;
         });
       }
@@ -1930,7 +1931,7 @@
     // Validation
     if (payload.data && payload.data.length > 0 && payload.taskType === 'field') {
       const seenFields = new Set();
-      const validTypes = ['Text', 'Number', 'Currency', 'Date', 'Date/Time', 'Phone', 'Picklist', 'Lookup'];
+      const validTypes = ['Text', 'Number', 'Currency', 'Date', 'Date/Time', 'Phone', 'Picklist', 'Lookup', 'Formula'];
 
       for (let i = 0; i < payload.data.length; i++) {
         const item = payload.data[i];

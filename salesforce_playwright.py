@@ -829,6 +829,8 @@ def process_payload(page, payload):
             decimal = details.get("DecimalPlaces")
             values = details.get("Values")
             related_to = details.get("RelatedTo") or details.get("relatedTo")
+            formula_type = details.get("FormulaType") or details.get("formulaType")
+            formula = details.get("Formula") or details.get("formula")
         else:
             field_label = config.get("FieldLabel")
             field_name = config.get("FieldName")
@@ -836,6 +838,8 @@ def process_payload(page, payload):
             decimal = config.get("DecimalPlaces")
             values = config.get("PicklistValues")
             related_to = config.get("RelatedTo") or config.get("relatedTo")
+            formula_type = config.get("FormulaType") or config.get("formulaType")
+            formula = config.get("Formula") or config.get("formula")
         
         print(f"Creating field {idx+1}/{len(fields)}: {field_label} on {object_name} ({field_type})")
         
@@ -876,6 +880,30 @@ def process_payload(page, payload):
                 domain_select.select_option(value=ref_to)
             except:
                 domain_select.select_option(label=ref_to)
+            page.wait_for_timeout(1000)
+            target_frame.locator("input[title='Next'], input[value*='Next']").first.click()
+            
+        if field_type == "Formula":
+            page.wait_for_timeout(1500)
+            target_frame = get_frame_with_element("input[name='FormulaType']", timeout_seconds=20)
+            if not target_frame:
+                raise Exception("Could not find Formula Return Type page")
+            
+            f_type = formula_type or "Text"
+            try:
+                target_frame.get_by_label(f_type, exact=True).check(timeout=5000)
+            except:
+                target_frame.locator(f"label:has-text('{f_type}')").locator("..").locator("input[type='radio']").check()
+                
+            if f_type in ["Currency", "Number", "Percent"]:
+                try:
+                    dec_val = int(decimal) if decimal else 2
+                except:
+                    dec_val = 2
+                loc_scale = target_frame.locator("input[id='Scale'], input[id='scale'], input[name='Scale']")
+                if loc_scale.count() > 0:
+                    loc_scale.first.fill(str(dec_val))
+            
             page.wait_for_timeout(1000)
             target_frame.locator("input[title='Next'], input[value*='Next']").first.click()
             
@@ -927,6 +955,11 @@ def process_payload(page, payload):
         
         if target_frame.locator("input[id='DeveloperName']").count() > 0 and field_name:
             target_frame.locator("input[id='DeveloperName']").fill(field_name)
+
+        if field_type == "Formula" and formula:
+            calc_formula_loc = target_frame.locator("textarea[id='CalculatedFormula'], textarea[name='CalculatedFormula']")
+            if calc_formula_loc.count() > 0:
+                calc_formula_loc.first.fill(formula)
 
         # Click next on details page
         target_frame.locator("input[title='Next'], input[value*='Next']").first.click()
