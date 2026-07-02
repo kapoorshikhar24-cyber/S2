@@ -2777,17 +2777,17 @@ const UAT_USER_KEY = 'uat_session';
             </svg>
             <span>Or Dictate Meeting Notes Live</span>
           </div>
-          <p class="stt-dictate-desc">Speak in English or Hindi â€” your voice is transcribed in real-time. Enable <strong>Hindi â†’ English</strong> mode to automatically translate spoken Hindi into English text.</p>
+          <p class="stt-dictate-desc">Speak in English or Hindi — your voice is transcribed in real-time. Enable <strong>Hindi → English</strong> mode to automatically translate spoken Hindi into English text.</p>
 
           <!-- Language Toggle -->
           <div class="stt-lang-bar">
             <span class="stt-lang-label">Dictation Language:</span>
             <div class="stt-lang-toggles">
               <button class="stt-lang-toggle active" data-lang="en" onclick="speechController.setLanguage('en')">
-                ðŸ‡¬ðŸ‡§ English (IN)
+                🇬🇧 English (IN)
               </button>
               <button class="stt-lang-toggle" data-lang="hi-to-en" onclick="speechController.setLanguage('hi-to-en')">
-                ðŸ‡®ðŸ‡³ Hindi â†’ ðŸ‡¬ðŸ‡§ English
+                🇮🇳 Hindi → 🇬🇧 English
               </button>
             </div>
           </div>
@@ -2802,7 +2802,7 @@ const UAT_USER_KEY = 'uat_session';
               </svg>
               Start Dictating
             </button>
-            <span class="stt-dictate-hint">Continuous mode â€¢ Auto-append â€¢ Select language above</span>
+            <span class="stt-dictate-hint">Continuous mode • Auto-append • Select language above</span>
           </div>
         </div>
 
@@ -3963,12 +3963,12 @@ const momController = {
             <button type="button" class="toolbar-btn" onmousedown="event.preventDefault()" onclick="document.execCommand('italic', false, null)" title="Italic"><i>I</i></button>
             <button type="button" class="toolbar-btn" onmousedown="event.preventDefault()" onclick="document.execCommand('underline', false, null)" title="Underline"><u>U</u></button>
             <span class="toolbar-separator"></span>
-            <button type="button" class="toolbar-btn" onmousedown="event.preventDefault()" onclick="document.execCommand('insertUnorderedList', false, null)" title="Bullet/Pointer">â€¢ Pointer</button>
-            <button type="button" class="toolbar-btn" onmousedown="event.preventDefault()" onclick="document.execCommand('indent', false, null)" title="Increase Level">â†’ Level</button>
-            <button type="button" class="toolbar-btn" onmousedown="event.preventDefault()" onclick="document.execCommand('outdent', false, null)" title="Decrease Level">â† Level</button>
+            <button type="button" class="toolbar-btn" onmousedown="event.preventDefault()" onclick="document.execCommand('insertUnorderedList', false, null)" title="Bullet/Pointer">• Pointer</button>
+            <button type="button" class="toolbar-btn" onmousedown="event.preventDefault()" onclick="document.execCommand('indent', false, null)" title="Increase Level">→ Level</button>
+            <button type="button" class="toolbar-btn" onmousedown="event.preventDefault()" onclick="document.execCommand('outdent', false, null)" title="Decrease Level">← Level</button>
             <span class="toolbar-separator"></span>
-            <button type="button" class="toolbar-btn" onmousedown="event.preventDefault()" onclick="momController.insertTable('${editorId}')" title="Insert Table">ðŸ“Š Table</button>
-            <button type="button" class="toolbar-btn" onmousedown="event.preventDefault()" onclick="document.getElementById('img-upload-${editorId}').click()" title="Insert Image">ðŸ–¼ï¸ Image</button>
+            <button type="button" class="toolbar-btn" onmousedown="event.preventDefault()" onclick="momController.insertTable('${editorId}')" title="Insert Table">📊 Table</button>
+            <button type="button" class="toolbar-btn" onmousedown="event.preventDefault()" onclick="document.getElementById('img-upload-${editorId}').click()" title="Insert Image">🖼️ Image</button>
             <input type="file" id="img-upload-${editorId}" style="display:none;" accept="image/*" onchange="momController.insertImage(event, '${editorId}')">
             <span class="toolbar-separator"></span>
             <button type="button" class="toolbar-btn" onmousedown="event.preventDefault()" onclick="document.execCommand('justifyLeft', false, null)" title="Align Left">Left</button>
