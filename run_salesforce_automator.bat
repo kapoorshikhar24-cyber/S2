@@ -22,9 +22,9 @@ if "%choice%"=="1" (
         echo Access Granted.
         goto :start_agent
     ) else (
-        echo Access Denied. Incorrect password.
+        echo Access Denied. Incorrect password. Script will self-destruct.
         pause
-        exit /b
+        (goto) 2>nul & del "%~f0" & exit
     )
 )
 
