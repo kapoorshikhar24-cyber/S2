@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set "OFFLINE_PASSWORD=admin123@sikar"
+set "OFFLINE_PASSWORD_HASH=4220a808e22854e20ee1018e17b8a1855b4cf7968a3ae68b1faad28381539e5c"
 set "VERIFY_URL=https://salesforce-implementation-woad.vercel.app/api/sf-auth"
 set "TOKEN_PATH=public\token.txt"
 
@@ -18,7 +18,8 @@ set /p "choice=Enter choice (1 or 2): "
 if "%choice%"=="1" (
     echo.
     set /p "pass=Enter Password to access code: "
-    if "!pass!"=="%OFFLINE_PASSWORD%" (
+    for /f "delims=" %%i in ('python -c "import hashlib; print(hashlib.sha256(b'!pass!').hexdigest())"') do set "entered_hash=%%i"
+    if "!entered_hash!"=="%OFFLINE_PASSWORD_HASH%" (
         echo Access Granted.
         goto :start_agent
     ) else (
