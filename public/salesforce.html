@@ -436,6 +436,7 @@
                         <div class="option" data-value="Phone">Phone</div>
                         <div class="option" data-value="Picklist">Picklist</div>
                         <div class="option" data-value="Text">Text</div>
+                        <div class="option" data-value="Lookup">Lookup</div>
                       </div>
                     </div>
                     <input type="hidden" id="dataType" class="single-req">
@@ -555,6 +556,22 @@
                       <input type="text" name="Text-FieldName" placeholder="External_ID__c" style="font-family:var(--font-mono);font-size:0.83rem;">
                     </div>
                   </div>
+                  <!-- Lookup -->
+                  <div id="fields-Lookup" class="dynamic-fields">
+                    <div class="divider"></div>
+                    <div class="field">
+                      <label>Field Label</label>
+                      <input type="text" name="Lookup-FieldLabel" placeholder="e.g. Related Account">
+                    </div>
+                    <div class="field">
+                      <label>Related To <span style="font-weight:300;color:var(--muted)">(Object API Name)</span></label>
+                      <input type="text" name="Lookup-RelatedTo" placeholder="e.g. Account">
+                    </div>
+                    <div class="field">
+                      <label>API Name</label>
+                      <input type="text" name="Lookup-FieldName" placeholder="Related_Account__c" style="font-family:var(--font-mono);font-size:0.83rem;">
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -585,6 +602,7 @@
                         <div class="option" data-value="Phone">Phone</div>
                         <div class="option" data-value="Picklist">Picklist</div>
                         <div class="option" data-value="Text">Text</div>
+                        <div class="option" data-value="Lookup">Lookup</div>
                       </div>
                     </div>
                     <input type="hidden" id="changeDataType" class="change-req">
@@ -634,6 +652,14 @@
                     <div class="field">
                       <label>Length</label>
                       <input type="number" name="ChangeText-Length" value="255">
+                    </div>
+                  </div>
+                  <!-- Lookup -->
+                  <div id="changeFields-Lookup" class="dynamic-fields">
+                    <div class="divider"></div>
+                    <div class="field">
+                      <label>Related To <span style="font-weight:300;color:var(--muted)">(Object API Name)</span></label>
+                      <input type="text" name="ChangeLookup-RelatedTo" placeholder="e.g. Account">
                     </div>
                   </div>
                 </div>

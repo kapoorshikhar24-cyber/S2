@@ -1,5 +1,27 @@
 {
   "version": 2,
+  "builds": [
+    {
+      "src": "api/*.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "app.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "style.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    }
+  ],
   "routes": [
     {
       "src": "/api/auth",
@@ -26,20 +48,52 @@
       "dest": "/api/sf.js"
     },
     {
+      "src": "/js/(.*)",
+      "dest": "/public/js/$1"
+    },
+    {
+      "src": "/css/(.*)",
+      "dest": "/public/css/$1"
+    },
+    {
+      "src": "/styles/(.*)",
+      "dest": "/public/styles/$1"
+    },
+    {
+      "src": "/images/(.*)",
+      "dest": "/public/images/$1"
+    },
+    {
+      "src": "/scripts/(.*)",
+      "dest": "/public/scripts/$1"
+    },
+    {
       "src": "/src/(.*)",
       "dest": "/src/$1"
     },
     {
-      "src": "/mom.html",
+      "src": "/app\\.js",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/style\\.css",
+      "dest": "/style.css"
+    },
+    {
+      "src": "/mom\\.html",
       "dest": "/public/mom.html"
     },
     {
-      "src": "/salesforce.html",
+      "src": "/salesforce\\.html",
       "dest": "/public/salesforce.html"
     },
     {
-      "src": "/salesforce_playwright.py",
+      "src": "/salesforce_playwright\\.py",
       "dest": "/public/salesforce_playwright.py"
+    },
+    {
+      "src": "/public/(.*)",
+      "dest": "/public/$1"
     },
     {
       "src": "/(.*)",

@@ -86,6 +86,11 @@ module.exports = async function handler(req, res) {
                             customField.valueSet = { valueSetDefinition: { sorted: false, value: pValues } };
                             if (dataType === 'MultiselectPicklist') customField.visibleLines = 4;
                         }
+                        if (dataType === 'Lookup') {
+                            customField.referenceTo = fieldDetails.RelatedTo || fieldDetails.relatedTo || 'Account';
+                            customField.relationshipName = name.replace('__c', '');
+                            customField.relationshipLabel = label;
+                        }
                         const result = await conn.metadata.create('CustomField', customField);
                         if (result.success || (Array.isArray(result) && result[0]?.success)) { await logHistory(dataType, objectName, label, name); successCount++; } 
                         else errors.push(`Field ${name}: ` + (Array.isArray(result) ? result[0].errors.message : result.errors?.message));

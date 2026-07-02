@@ -1930,7 +1930,7 @@
     // Validation
     if (payload.data && payload.data.length > 0 && payload.taskType === 'field') {
       const seenFields = new Set();
-      const validTypes = ['Text', 'Number', 'Currency', 'Date', 'Date/Time', 'Phone', 'Picklist'];
+      const validTypes = ['Text', 'Number', 'Currency', 'Date', 'Date/Time', 'Phone', 'Picklist', 'Lookup'];
 
       for (let i = 0; i < payload.data.length; i++) {
         const item = payload.data[i];
