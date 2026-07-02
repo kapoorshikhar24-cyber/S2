@@ -1312,12 +1312,32 @@
   // ---------------------------------------------------------------------------
 
   window.Projects = {
+    load,
+    switchView,
+    previewImage,
+    clearImageUpload,
+    add,
+    update,
+    editProject,
+    deleteProject,
+    saveSla,
+    openSlaEditor,
+    closeSlaEditor,
+    saveExternalAccess,
     openEmployeeEditor,
     saveEmployees,
+    render,
+    renderDetailed,
     saveDates,
     handleTableDateChange,
+    openQuickModal,
+    closeQuickModal,
+    clearQuickImage,
+    previewQuickImage,
+    saveQuickProject,
     enterEditRow,
     exitEditRow,
+    cancelEdit
   };
 
 })();
