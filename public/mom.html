@@ -4144,7 +4144,7 @@ const momController = {
     };
 
     // Save database
-    const savedId = dbController.saveMeeting(meetingPayload);
+    const savedId = await dbController.saveMeeting(meetingPayload);
     state.selectedMeetingId = savedId;
 
     toastController.show("Minutes of Meeting saved and generated successfully!", "success");
@@ -5071,7 +5071,7 @@ const trackerController = {
     else newStatus = "open";
 
     action.status = newStatus;
-    dbController.saveMeeting(meeting);
+    dbController.saveMeeting(meeting); // fire-and-forget sync, no await needed
     
     this.refresh();
   }
