@@ -147,8 +147,14 @@ def process_payload(page, payload):
         except:
             if page.locator("input[id='username']").count() > 0:
                 page.fill("input[id='username']", creds["username"])
-                page.fill("input[id='password']", creds["password"])
-                page.click("input[id='Login']")
+                if page.locator("input[id='password']").is_visible():
+                    page.fill("input[id='password']", creds["password"])
+                    page.click("input[id='Login']")
+                else:
+                    page.click("input[id='Login']")
+                    page.wait_for_selector("input[id='password']", state="visible", timeout=15000)
+                    page.fill("input[id='password']", creds["password"])
+                    page.click("input[id='Login']")
 
             print("Waiting for Lightning dashboard (please complete 2FA/MFA if prompted)...")
             page.wait_for_url("**/lightning/**", timeout=120000)  # 2 min max
